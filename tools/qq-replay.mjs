@@ -11,7 +11,7 @@
  * 内存里留下的那条"她说她听见了"是她的记忆（chat-in 的设计），不是这个脚本写的。
  *
  * 跑：
- *   node tools/qq-replay.mjs --file D:/dafeiyu/语料/qq_dec/messages.jsonl \
+ *   node tools/qq-replay.mjs --file <导出好的 messages.jsonl> \
  *        --conv 670607862 --offset 40000 --n 8 --gap 400
  *   node tools/qq-replay.mjs ... --dry        先看要发什么，不发
  *   node tools/qq-replay.mjs ... --no-watch   不盯她的回复

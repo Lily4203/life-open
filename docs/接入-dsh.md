@@ -60,7 +60,7 @@ node  <仓库绝对路径>/mcp/server.mjs
   "name": "life",
   "transport": "stdio",
   "command": "node",
-  "args": ["D:\\dafeiyu\\life\\mcp\\server.mjs"],
+  "args": ["<把仓库放在哪就用哪>/mcp/server.mjs"],
   "env": { "LIFE_URL": "http://127.0.0.1:8765" }
 }
 ```

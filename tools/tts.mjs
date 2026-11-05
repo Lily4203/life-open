@@ -266,7 +266,7 @@ export function silentWav(seconds = 0.4) {
  * edge 在前不是因为它更"高级"，是因为它像人。sapi 那个拼接音不管怎么调语速
  * 都是导航播报，用户第一句就能听出来。sapi 留着只为了断网时还能出声。 */
 export function engineOrder(pref) {
-  const want = String(pref || process.env.DAFEIYU_TTS || '').trim();
+  const want = String(pref || process.env.LIFE_TTS || '').trim();
   if (want === 'stub') return ['stub'];
   if (want && ENGINES[want]) return [want, ...['edge', 'sapi'].filter(x => x !== want)];
   return ['edge', 'sapi'];

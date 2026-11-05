@@ -137,7 +137,6 @@ cp -r data.example data
 
 ```
 预览-66.html          房间：接线和界面
-预览-67.html          门口：封面页
 更新.html             版本、更新日志、怎么换上去
 version.json          版本号 + 更新日志（也是"外面有没有新的"的答案）
 js/brain/             大脑：29 个模块，只产出意向，不碰世界
@@ -152,7 +151,7 @@ tools/vision.mjs      看一眼：一帧进、一句话出（智谱/通义/Gemin
 tools/voice-profile.mjs  她的声音：音色、语速起伏、句尾呼吸、五档情绪
 tools/tts-edge-daemon.py 常驻的合成进程（不常驻的话每句白付 2.4 秒）
 tools/voice-probe.py  声音探针：真浏览器里 decode 一遍，验「她真的出声了」
-tools/brain-test/     33 组 1614 条断言
+tools/brain-test/     33 组 1615 条断言
 tools/smoke.py        页面冒烟：19 条（骨架）
 ```
 
@@ -169,11 +168,11 @@ tools/smoke.py        页面冒烟：19 条（骨架）
 ## 测试
 
 ```bash
-cd tools/brain-test && node run-all.mjs      # 33 组 1614 条，有红就退出码 1
+cd tools/brain-test && node run-all.mjs      # 33 组 1615 条，有红就退出码 1
 python tools/smoke.py --no-turn              # 页面冒烟 19 条（要 chrome/edge + python）
 ```
 
-**这套断言是这个项目里最不该被删的东西。** 1614 条里有一大半记录的是"这样写会出什么错"，
+**这套断言是这个项目里最不该被删的东西。** 1615 条里有一大半记录的是"这样写会出什么错"，
 而不是"这样写能跑"。它们比代码本身更能说明这个东西是怎么长出来的。
 
 ---

@@ -51,18 +51,18 @@ console.log('\nB. 太长就在句号处截断');
 console.log('\nC. 试哪个引擎，顺序要说得清');
 
 {
-  const old = process.env.DAFEIYU_TTS;
-  delete process.env.DAFEIYU_TTS;
+  const old = process.env.LIFE_TTS;
+  delete process.env.LIFE_TTS;
   /* 顺序不是随手排的：edge 是神经音色（像人），sapi 是 2009 年的拼接音（像导航）。
    * 之前 sapi 在前，房间里听到的一直是那个播报腔——换声音这件事，一半就坏在顺序上。 */
   eq(engineOrder(), ['edge', 'sapi'], 'C1 默认先神经音色，本机那个留着救急');
   eq(engineOrder()[0], 'edge', 'C1b 第一个就是像人的那个（不是"能出声就行"）');
-  process.env.DAFEIYU_TTS = 'stub';
+  process.env.LIFE_TTS = 'stub';
   eq(engineOrder(), ['stub'], 'C2 环境变量能指定（排障用）');
-  delete process.env.DAFEIYU_TTS;
+  delete process.env.LIFE_TTS;
   eq(engineOrder('sapi')[0], 'sapi', 'C3 点名要哪个就先试哪个');
   ok(engineOrder('sapi').includes('edge'), 'C4 失败了还能退回另一个（不是非黑即白）');
-  if (old === undefined) delete process.env.DAFEIYU_TTS; else process.env.DAFEIYU_TTS = old;
+  if (old === undefined) delete process.env.LIFE_TTS; else process.env.LIFE_TTS = old;
 }
 
 console.log('\nD. 真走一遍合成（stub：不发声，只验管道）');

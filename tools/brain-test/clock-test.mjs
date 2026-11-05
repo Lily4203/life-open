@@ -161,7 +161,7 @@ console.log('\nE. 出处：源码里不该再有那套衰减曲线');
 
 {
   const page = read('预览-66.html');
-  ok(!/createDrives|DRV\.satisfy|__STEP_DRIVES|dafeiyu\.drives/.test(page), 'E1 66 里没有 drive 的任何残留');
+  ok(!/createDrives|DRV\.satisfy|__STEP_DRIVES|__DRIVES/.test(page), 'E1 66 里没有 drive 的任何残留');
   ok(!existsSync(join(ROOT, 'js/brain/drives.mjs')), 'E2 运行路径里没有 drives.mjs（那份已作废，在 _未接/）');
   ok(!existsSync(join(ROOT, 'js/brain/beat.mjs')), 'E2b 也没有 beat.mjs（并进 clock.mjs 了，不留两份）');
 
