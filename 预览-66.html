@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>房间 · 米塔式美术</title>
+<style>
+  html,body{margin:0;height:100%;background:#eef2f7;overflow:hidden;
+    font:13px/1.6 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;color:#2c3746}
+  canvas{display:block}
+  #tip{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:10px;pointer-events:none;text-align:center}
+  #tip .box{background:rgba(20,28,38,.86);border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;padding:22px 28px;backdrop-filter:blur(12px);pointer-events:auto;color:#dfe8f5}
+  #tip b{font-size:15px;color:#9fd0ff}
+  #tip .pick{display:inline-block;margin-top:12px;padding:7px 16px;border-radius:9px;cursor:pointer;
+    background:rgba(140,180,255,.18);border:1px solid rgba(140,180,255,.42);color:#dbe9ff;font-size:12.5px}
+  #tip .pick:hover{background:rgba(140,180,255,.3)}
+  #tip .sub{margin-top:9px;font-size:11px;color:#8fa2b8;line-height:1.7}
+  #tip code{font-family:ui-monospace,monospace;background:rgba(255,255,255,.06);
+    padding:1px 5px;border-radius:4px;color:#a9c4de}
+  body.drag #tip .box{border-color:rgba(140,200,255,.85)}
+  #hud{position:fixed;left:12px;top:10px;font:11px/1.55 ui-monospace,monospace;color:#fff6e8;
+    white-space:pre;pointer-events:none;letter-spacing:.2px;
+    text-shadow:0 1px 3px rgba(58,34,18,.75), 0 0 14px rgba(58,34,18,.45)}
+  /* 有新版本时才出现的角落小胶囊。默认 display:none——它不是常驻 UI，
+     常驻的东西会变成"又一个要忽略的角标"。 */
+  #upd{position:fixed;left:12px;top:auto;bottom:12px;z-index:7;display:none;
+    font:11px/1.4 ui-monospace,monospace;text-decoration:none;color:#2a1c10;
+    background:linear-gradient(180deg,#ffd9a0,#f0b96a);padding:5px 11px;border-radius:999px;
+    box-shadow:0 3px 12px rgba(30,16,6,.35);letter-spacing:.2px}
+  #upd.on{display:inline-block}
+  body.hero #upd{opacity:0;pointer-events:none}
+  #hover{position:fixed;left:50%;bottom:56px;transform:translateX(-50%);
+    background:rgba(22,30,42,.82);color:#e6eefb;font-size:12px;padding:5px 12px;border-radius:8px;
+    opacity:0;transition:opacity .18s;pointer-events:none}
+  #hover.on{opacity:1}
+  /* 底栏上移：下面留给「她的话 + 输入」，两个不再压在一起（原来 bar 在 bottom:12px，正好被盖住） */
+  #bar{position:fixed;left:50%;bottom:138px;transform:translateX(-50%);display:flex;gap:5px;
+    background:rgba(28,20,14,.80);padding:6px;border-radius:12px;border:1px solid rgba(255,255,255,.14);
+    backdrop-filter:blur(10px);z-index:5;flex-wrap:wrap;justify-content:center;max-width:94vw;
+    opacity:.30;transition:opacity .35s ease}
+  #bar.dim{opacity:.18}
+  #bar:hover{opacity:1}
+  #bar button{background:transparent;border:0;color:#e4d6c6;font:12px/1 inherit;padding:6px 9px;
+    border-radius:7px;cursor:pointer}
+  #bar button:hover{background:rgba(255,255,255,.08);color:#fff}
+  #bar button.on{background:rgba(140,180,255,.24);color:#eaf2ff}
+  #bar .sep{width:1px;background:rgba(255,255,255,.14);margin:2px 3px}
+  /* 角色面板：换人的入口。它只换模型，不碰任何互动逻辑 */
+  #who{position:fixed;right:12px;top:12px;width:252px;z-index:8;display:none;
+    background:rgba(30,22,16,.94);border:1px solid rgba(255,226,186,.22);border-radius:14px;
+    padding:12px 12px 10px;backdrop-filter:blur(10px);color:#f0e2d2;
+    font:12px/1.6 system-ui,'Microsoft YaHei',sans-serif;box-shadow:0 10px 34px rgba(20,10,4,.5)}
+  #who.on{display:block}
+  #who h4{margin:0 0 8px;font-size:12px;font-weight:600;color:#ffd9a8;letter-spacing:.4px;
+    display:flex;justify-content:space-between;align-items:center}
+  #who h4 span{cursor:pointer;color:#a08d7c;font-weight:400;padding:0 3px}
+  #who h4 span:hover{color:#fff}
+  .whoRow{display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border-radius:9px;
+    cursor:pointer;border:1px solid transparent}
+  .whoRow:hover{background:rgba(255,226,186,.08)}
+  .whoRow.on{background:rgba(255,196,120,.14);border-color:rgba(255,196,120,.34)}
+  .whoRow .dot{width:7px;height:7px;border-radius:50%;background:#6b5a4a;margin-top:6px;flex:0 0 7px}
+  .whoRow.on .dot{background:#ffc05a;box-shadow:0 0 8px #ffc05a}
+  .whoRow b{font-weight:600;color:#fff3e2}
+  .whoRow i{display:block;font-style:normal;color:#a8947f;font-size:11px;margin-top:1px}
+  .whoRow em{display:inline-block;font-style:normal;font-size:10px;padding:1px 5px;border-radius:4px;
+    background:rgba(255,140,110,.16);color:#ffb49a;margin-top:4px}
+  /* 一个人可以有多具身体：能进房间的高亮，进不了的划掉 */
+  .whoRow .chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+  .whoRow .chips .k{font-size:9.5px;padding:1px 6px;border-radius:4px;letter-spacing:.02em;
+    background:rgba(255,226,186,.10);color:#c9b49b}
+  .whoRow .chips .k.no{opacity:.4;text-decoration:line-through}
+  .whoRow .chips .k.cur{background:rgba(255,196,120,.26);color:#ffd9a8}
+  #who .imp{display:block;text-align:center;margin-top:8px;padding:7px;border-radius:9px;
+    border:1px dashed rgba(255,226,186,.3);color:#e6c9a8;cursor:pointer;font-size:11.5px}
+  #who .imp:hover{background:rgba(255,226,186,.08);color:#fff}
+  #who .note{margin:8px 0 0;font-size:10.5px;line-height:1.55;color:#8d7a66}
+  #who .gen{display:block;text-align:center;margin-top:7px;padding:7px;border-radius:9px;
+    background:linear-gradient(180deg,rgba(255,183,108,.22),rgba(255,150,80,.12));
+    border:1px solid rgba(255,183,108,.34);color:#ffd9a8;cursor:pointer;font-size:11.5px}
+  #who .gen:hover{background:rgba(255,183,108,.3);color:#fff}
+  /* 调色层：画面的"照片感"一半来自光源，一半来自这层暗角。
+     数值由 styleChar() 按当前画风写进来（--g-vig / --g-warm / --g-cold），
+     换画风就换这一层，模型和灯位不动。 */
+  #grade{position:fixed;inset:0;pointer-events:none;z-index:2;mix-blend-mode:multiply;
+    --g-vig:0.44; --g-vigc:rgba(186,152,126,0.44);
+    --g-warm:rgba(255,226,186,0.30); --g-cold:rgba(108,92,86,0.28);
+    background:radial-gradient(ellipse 78% 68% at 50% 46%, rgba(255,255,255,0) 36%, var(--g-vigc) 100%)}
+  #grade::after{content:'';position:absolute;inset:0;mix-blend-mode:soft-light;
+    background:linear-gradient(178deg, var(--g-warm) 0%, var(--g-cold) 100%)}
+  /* 宣传机位：电影黑边 + 收起所有 UI。
+     最后一步很关键——UI 一露出来，这张图就只是"产品截图"，不是宣传图。 */
+  #cine{position:fixed;inset:0;pointer-events:none;z-index:8;opacity:0;transition:opacity .55s ease}
+  #cine i{position:absolute;left:0;right:0;height:8.5%;background:#070509;display:block}
+  #cine i:first-child{top:0} #cine i:last-child{bottom:0}
+  body.hero #cine{opacity:1}
+  body.hero #bar,body.hero #hud,body.hero #hover,body.hero #who,body.hero #tip{opacity:0;pointer-events:none}
+  body.hero #grade::before{content:'';position:absolute;inset:0;
+    background:radial-gradient(ellipse 64% 60% at 50% 46%, rgba(0,0,0,0) 26%, rgba(9,7,11,.62) 100%)}
+  #tip{z-index:7} #hud{z-index:7} #hover{z-index:7}
+
+  /* ---- 说话：她的话在下方，输入在更下面；宣传机位下全部收起 ---- */
+  #talk{position:fixed;left:0;right:0;bottom:0;z-index:8;display:flex;flex-direction:column;
+    align-items:center;gap:10px;padding:0 16px 22px;pointer-events:none;
+    transition:opacity .5s ease, transform .5s ease}
+  body.hero #talk{opacity:0;transform:translateY(8px);pointer-events:none}
+  #herline{max-width:min(680px,86vw);text-align:center;font:15px/1.7 -apple-system,"Segoe UI",system-ui,sans-serif;
+    color:#f4ece0;letter-spacing:.01em;
+    text-shadow:0 2px 14px rgba(0,0,0,.85),0 1px 3px rgba(0,0,0,.9);
+    opacity:0;transition:opacity .35s ease}
+  #herline.on{opacity:1}
+  #sayform{display:flex;gap:8px;align-items:center;pointer-events:auto;
+    background:rgba(16,13,18,.42);border:1px solid rgba(255,255,255,.14);border-radius:999px;
+    padding:5px 6px 5px 15px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 8px 30px rgba(0,0,0,.45)}
+  #saybox{width:min(360px,52vw);border:0;outline:0;background:transparent;color:#f4ece0;
+    font:13.5px/1.4 -apple-system,"Segoe UI",system-ui,sans-serif}
+  #saybox::placeholder{color:rgba(244,236,224,.42)}
+  #sayform button{border:0;border-radius:999px;padding:6px 14px;cursor:pointer;
+    background:rgba(244,236,224,.9);color:#1a1519;font:12px/1 -apple-system,system-ui,sans-serif}
+  #sayform button:disabled{opacity:.45;cursor:default}
+  /* 麦克风：开着的时候是红的，不是装饰——"她在听"必须一眼看得出来。
+     看不出来的后果很具体：他对着一个根本没开的麦克风说了三句，然后怪她不回。 */
+  #sayform button.mic{background:rgba(244,236,224,.22);color:#f4ece0;min-width:44px;padding:6px 10px}
+  #sayform button.mic.on{background:#e2604a;color:#fff;box-shadow:0 0 0 3px rgba(226,96,74,.18)}
+  #sayform button.mic.wait{background:rgba(255,214,150,.20);color:#ffd9a8}
+  #sayform button.mic.bad{background:rgba(232,176,106,.26);color:#ffd9a8}
+  #sayform button.eye{background:rgba(244,236,224,.22);color:#f4ece0;min-width:44px;padding:6px 10px}
+  #sayform button.eye.on{background:rgba(255,214,150,.30);color:#2a1a10}
+  #sayform button.eye.bad{background:rgba(232,176,106,.26);color:#ffd9a8}
+  #bstat{font:10.5px/1 ui-monospace,monospace;color:rgba(255,255,255,.42);letter-spacing:.04em;
+    text-shadow:0 1px 6px rgba(0,0,0,.7)}
+  #bstat b{color:rgba(255,255,255,.7);font-weight:500}
+  #bstat .warn{color:#e8b06a}
+
+  /* ---- 窄屏 / 矮屏（2026-11-05）：这个页面原来零个 @media，手机上直接没法用 ----
+   * 只调摆位和字号，**不碰 3D**：画面是 canvas，自己会拉伸；坏的是压在上面那层 UI。
+   * 三条硬要求：输入框不被键盘挡住、底栏不跟输入框打架、状态栏不挤成一团。
+   * 机器人和手机横屏都算窄屏，所以加了 max-height 那条。 */
+  @media (max-width: 720px), (max-height: 520px){
+    #hud{font-size:9.5px;line-height:1.45;left:8px;top:6px;opacity:.85}
+    #who{right:6px;left:6px;top:6px;width:auto;max-height:70vh;overflow:auto}
+    /* 手机上工具条必然压在画面上，所以底子要更实、字要有描边：
+     * 半透明白字压在浅色裙子上，等于没有字。 */
+    #bar{bottom:104px;gap:3px;padding:4px;max-width:96vw;border-radius:10px;
+      opacity:.95;background:rgba(24,17,12,.92)}
+    #bar button{font-size:11px;padding:5px 7px;
+      text-shadow:0 1px 2px rgba(0,0,0,.9)}
+    #talk{padding:0 10px calc(10px + env(safe-area-inset-bottom))}
+    #herline{font-size:14px;max-width:92vw}
+    #sayform{padding:4px 4px 4px 12px;gap:6px}
+    /* 16px 是硬门槛：iOS 上小于 16 的输入框一聚焦就会自己放大，放大后回不来 */
+    #saybox{width:auto;flex:1;font-size:16px}
+    /* 手机上这一行太长（记忆/记住/查过/上下文/动作/自己醒/模型），
+     * 挤一行会被截掉尾巴。允许折成两行，比截断强。 */
+    #bstat{font-size:8.5px;line-height:1.35;white-space:normal;max-width:92vw;text-align:center}
+    #hover{bottom:172px;font-size:11px;max-width:92vw}
+  }
+</style></head>
+<body>
+<div id="tip"><div class="box">
+  <b>把 .vrm 拖进来</b>
+  <div class="sub">或者 <label class="pick">选文件…<input id="pick" type="file" accept=".vrm,.glb" hidden></label></div>
+  <div class="sub">WASD 走动 · 走近了按 E 互动 · 右上「换人」可换任意 VRM</div>
+</div></div>
+<div id="hud"></div>
+<a id="upd" href="更新.html" title="有一个新版本"></a>
+<div id="hover"></div>
+<div id="who">
+  <h4>角色<span id="whoX">×</span></h4>
+  <div id="whoList"></div>
+  <label class="imp">导入 .vrm<input id="whoFile" type="file" accept=".vrm" hidden></label>
+  <a class="gen" href="生成-角色.html">用图片生成一个新角色 →</a>
+  <p class="note">换人只换模型。房间、走路、互动都只认「1.36 m 直立人形」这一条契约。</p>
+</div>
+<div id="grade"></div>
+<div id="cine"><i></i><i></i></div>
+<div id="bar"></div>
+
+<div id="talk">
+  <div id="herline"></div>
+  <form id="sayform" autocomplete="off">
+    <input id="saybox" placeholder="跟她说句话…（Enter 发送）" maxlength="200">
+    <button type="button" id="micbtn" class="mic" title="按一下开始听（用 Edge 的语音识别）">听</button>
+    <button type="button" id="eyebtn" class="eye" title="看一眼你的屏幕（点这个就是允许，刷新页面就收回）">看</button>
+    <button type="button" id="playbtn" title="让她玩一局猜数字">玩一局</button>
+    <button type="submit" id="saybtn">说</button>
+  </form>
+  <div id="bstat">正在装记忆…</div>
+</div>
+
+<script type="module">
+/* 3D 那一整套在 js/room/world.mjs（场景、房间、她、互动、表现、每帧）。
+ * 这里只负责把世界装起来；它装完会把 scene/room/char/interact/perf 五块打勾。 */
+import { buildWorld } from './js/room/world.mjs';
+buildWorld();
+</script>
+<script type="module">
+/* 主干接线：一句话进来 → 记 → 装上下文 → 问模型 → 屋子执行 → 回写记忆
+ * ------------------------------------------------------------
+ * 动作注册和几何仍然分开：这里注册"意图"，room-bridge 在那头算坐标。
+ * 记忆落在服务端 data/ 目录（tools/serve.mjs），所以刷新、重启、换浏览器读的是同一份。
+ *
+ * 控制台可试：
+ *   await __TURN('你去床上躺会儿')        真跑一轮
+ *   __WAKE()                              没人说话时走一次（没有待办就不花钱）
+ *   __RAISE('unseen','lamp:1','灯自己灭了一下',['go_to'])   往队列里放一件事
+ */
+import { createRegistry } from './js/brain/actions.mjs';
+import { attachRoom } from './js/brain/room-bridge.mjs';
+import { createMemory } from './js/brain/memory.mjs';
+import { createInitiative } from './js/brain/initiative.mjs';
+import { createLoop } from './js/brain/loop.mjs';
+import { createPerception } from './js/brain/perception.mjs';
+import { httpStore } from './js/brain/store-http.mjs';
+import { createAvatar, unsupported } from './js/brain/avatar.mjs';
+import { loadWardrobe, SLOT_ZH } from './js/brain/wardrobe.mjs';
+import { createExecutor } from './js/brain/executor.mjs';
+import { createGameBridge } from './js/brain/game-bridge.mjs';
+import { createSenses } from './js/brain/senses.mjs';
+import { createEyes } from './js/brain/eyes.mjs';
+import { createClock, startClock, listClocks } from './js/brain/clock.mjs';
+import { createChatIn } from './js/brain/chat-in.mjs';
+import { startHeartbeat } from './js/brain/heartbeat.mjs';
+import { createLiveSay, splitScript, stripScript } from './js/brain/say-stream.mjs';
+import { createSseDecoder } from './js/brain/sse.mjs';
+import { createVoice } from './js/brain/voice.mjs';
+import { createHearing } from './js/brain/hearing.mjs';
+import { loadActivities } from './js/brain/world-content.mjs';
+import { guessGame } from './js/brain/games/guess.mjs';
+/* 和第一段 import 的是同一个模块实例，所以它打的勾这里看得见。 */
+import { READY } from './js/brain/ready.mjs';
+/* 更新检查不是她的一部分：它坏了不该影响她活着，所以**不进就绪清单**。
+ * 只在角落里亮一个小点，点开是「更新.html」。 */
+import { mountUpdates } from './js/brain/updates.mjs';
+
+/* 3D 那套在上一段 <script> 里，跨模块作用域；它已经把 THREE 露出来了。
+ * 这里只读它，不重新 import 一份——两份 three 会导致 instanceof 判断全错。 */
+const THREE = window.__THREE;
+
+/* 流式的走法（?stream=off|quiet|speak，默认 speak）。
+ * 放在这儿是因为 chat() 在最上面就要用；真正决定"哪句先说"的不在这里。 */
+const STREAM_Q = new URLSearchParams(location.search);
+const STREAM_MODE = (() => {
+  const v = (STREAM_Q.get('stream') || 'speak').toLowerCase();
+  return ['off', 'quiet', 'speak'].includes(v) ? v : 'speak';
+})();
+
+const R = createRegistry();
+window.__REGISTRY = R;
+
+/* ---- 显示后端端口：换身体不改大脑（js/brain/avatar.mjs）----
+ * 这一层只管"这具身体能做什么"，不碰渲染、不碰骨骼名。
+ * caps 里只写它真会做的事：多写一个注册时就被拦；少写一个，她自己知道做不到（describe 会说）。
+ * 另外四门（live2d / mmd / spine / tachie）的位置在 avatar.mjs 的能力表里留着，
+ * 谁接谁注册，这里一行都不用改。 */
+const avatar = createAvatar();
+
+/* ---- 换装：一张图贴在骨头上 ----
+ * 只认 overlay（图片层）；mesh / texture 会如实说"这具身体还不会穿这种"。
+ * 这里故意不做"自动选衣服"：穿什么由她决定，这里只负责把层挂上去。
+ * 挂点参数（bone/offset/scale）是内容，不是大脑协议——她永远只说 outfit:scarf-red。 */
+const OUTFIT = { layers: [] };
+window.__OUTFIT = OUTFIT;   // 调试用：看现在身上挂了几层
+function clearOutfit() {
+  for (const m of OUTFIT.layers) {
+    try {
+      m.parent?.remove(m);
+      m.geometry?.dispose?.();
+      m.material?.map?.dispose?.();
+      m.material?.dispose?.();
+    } catch {}
+  }
+  OUTFIT.layers = [];
+}
+function outfitBone(bone) {
+  const h = window.__vrm?.humanoid;
+  return h?.getNormalizedBoneNode?.(bone) || h?.getRawBoneNode?.(bone) || null;
+}
+function applyOutfit(opt = {}) {
+  const vrm = window.__vrm;
+  if (!vrm) throw unsupported('模型还没加载好，现在穿不上');
+  clearOutfit();
+  const layers = Array.isArray(opt.layers) ? opt.layers : [];
+  for (const L of layers) {
+    if (L.mode !== 'overlay')
+      throw unsupported(`这具身体还不会穿「${L.name}」这种（${L.mode}）`);
+    const url = (L.dir || '') + (L.files?.image || '');
+    if (!url) throw unsupported(`「${L.name}」没有图`);
+    const tex = new THREE.TextureLoader().load(url);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    /* Sprite 不是偷懒：2D 图贴在 3D 身上，唯一不会穿帮的角度就是"永远面向镜头"。
+     * 用 Mesh 平面的话，她一转身，图就侧过去变成一条线；用 Sprite 至少正面永远对。
+     * depthTest:false 是有意的：图本来就该盖在身体外面，被身体挡住等于没穿。
+     * 代价是背面也会透出来——这是 overlay 的边界，要真背面就上 mesh。 */
+    const mat = new THREE.SpriteMaterial({
+      map: tex, transparent: true, depthWrite: false, depthTest: false, alphaTest: 0.02,
+    });
+    const mesh = new THREE.Sprite(mat);
+    const a = L.anchor || {};
+    const node = outfitBone(a.bone) || vrm.scene;
+    node.add(mesh);
+    const off = a.offset || [0, 0, 0];
+    const sc = a.scale || [0.3, 0.2, 1];
+    mesh.position.set(off[0], off[1], off[2]);
+    mesh.scale.set(sc[0], sc[1], 1);
+    mesh.center.set(0.5, 0.5);
+    mesh.renderOrder = 20 + (L.z || 0);
+    mesh.frustumCulled = false;
+    OUTFIT.layers.push(mesh);
+  }
+  console.log('[outfit] 挂上 ' + OUTFIT.layers.length + ' 层：'
+    + OUTFIT.layers.map(m => m.parent?.name + '/' + m.position.toArray().join(',')).join(' | '));
+  return { ok: true, count: OUTFIT.layers.length };
+}
+
+avatar.register('vrm', {
+  /* 能力表里加 outfit：这一次是真会做，不是先占个位。
+   * 做不到的件（mesh/texture）会在 applyOutfit 里抛 unsupported，
+   * 回执写"这具身体还不会穿这种"，不静默成功。 */
+  /* 能力表里加 garment 之外的三项：gesture（P5 的手势）、lookAt（一直有骨骼，只是没人调）。
+   * viseme 没进这张表，见 lipsync 那一段的说明——口型是后端内部的事，大脑不该点名。 */
+  caps: ['say', 'emotion', 'motion', 'blink', 'outfit', 'lipsync', 'gesture', 'lookAt'],
+  /* 这几个只能在 window 上拿：3D 那套在上一段 <script> 里，跨模块作用域。
+   * 不是图省事——那一侧已经把该露的露出来了（__state / __apply / __poke），
+   * 这里只用这三个，渲染逻辑一行没动。 */
+  /* say = 字幕 + 声音。这是"唯一出口"的落点：executor 说话，身体负责让她被看见**和**被听见。
+   * 没有声音的时候 voice.speak 会失败，但字幕照常——哑是事实，不是故障。
+   *
+   * opt 是流式才用的：
+   *   opt.append  这一句接在字幕后面（不然新的一句会把前一句顶掉）
+   *   opt.silent  只上字幕不出声（定稿时把整段补到字幕上，声音已经在流里一句句出过了）
+   * 传字符串当 opt 也认（老调用方`avatar.say('你好')`不用改）。 */
+  say: (t, opt) => {
+    const o = typeof opt === 'string' ? {} : (opt || {});
+    /* 字幕只显示话，不显示【停】——标记是给播放端的，不是给人看的。
+     * 声音那边把原文连标记一起送进去（splitScript 在里面切段、做停顿），
+     * 所以这里不能把摘过的版本再传下去，否则停顿就丢了。 */
+    const shown = stripScript(t);
+    if (o.append) sayAppend(shown); else say(shown);
+    /* 表现层要知道"她开口了"：说话时手势频一点、镜头微推、待机动作让位。
+     * 传的是"这一句"，不是"整段"——流式下每句都会来一次，正好一句一个节拍。 */
+    try { window.__PERF?.onSay(String(shown)); } catch { /* 表现层坏了不该影响说话 */ }
+    if (!o.silent) speakQueued(t);
+    return { ok: true, text: String(shown) };
+  },
+  /* 口型：直接喂 3D 那一侧的 mouthWant（它本来就有这个量，每帧 lerp 到 aa）。
+   * 不从文本猜音素，看波形响度——换语言、换句子都不用改。
+   *
+   * P5 补一句实话：**真正的 viseme（a/i/u/e/o）需要音素时间轴**，而我们的 TTS 只给音频。
+   * 所以这里只做"同一张嘴，张合更有形状"：主口型仍是 aa，叠一成的 ih，
+   * 让长音不至于像打哈欠。要做准，得让 tts.mjs 先给出音素（那是另一件事，记在待办里）。 */
+  lipsync: v => { window.__state.mouthWant = v; },
+  emotion: e => {
+    window.__state.expr = e; window.__poke();
+    /* 换了表情顺手带一个身体动作：只在不忙的时候，而且由表现层决定做不做。
+     * 表情本身已经生效了，带不动也不影响——所以这里不等结果。 */
+    try { window.__PERF?.onEmotion(e); } catch { /* 同上 */ }
+  },
+  /* 手势：身体词汇，不是大脑词汇。表现层负责"什么时候演哪个"；
+   * 这里只把外部（页面调试口 / 以后别的后端）的请求转进去。
+   * 不认识的由表现层忽略并说明，不猜同义词。 */
+  gesture: (k) => window.__PERF.gesture(k),
+  /* 看向某处（屏幕坐标 0~1）：覆盖鼠标跟随 2.5 秒。
+   * 她"看向台灯"和鼠标恰好在那儿必须能分开——所以是覆盖，不是叠加。 */
+  lookAt: (x, y) => {
+    const until = performance.now() + 2500;
+    window.__state.look = { x: Number(x), y: Number(y), until };
+    return { ok: true };
+  },
+  motion: m => {
+    // applyPose 只认识这四种；别的姿势它不吭声，等于"嘴上动了，人没动"
+    if (!['stand', 'sit', 'lie', 'desk'].includes(m)) throw unsupported(`这个身体不会「${m}」`);
+    window.__apply(m);
+  },
+  outfit: (name, opt) => applyOutfit(opt),
+});
+window.__AVATAR = avatar;
+
+/* ---- 声音端口 ----
+ * 服务端有没有能出声的引擎，启动时问一次；没有就只是没声音，其余一切照常。
+ * 换音色/换引擎只动 tools/tts.mjs，这里一行都不用改。 */
+const voice = createVoice({ onLevel: v => avatar.lipsync(v) });
+/* 她的喇叭叫 __SPEAKER，不叫 __VOICE。
+ * 原因是一个真实的撞名：下面那个语音调试口已经占了 __VOICE（往她耳朵里塞一句话），
+ * 结果从外面根本摸不到"声音"这个对象——探针报了 unlock is not a function，
+ * 而那个错误看起来像"声音模块没导出 unlock"，其实是名字被顶掉了。 */
+window.__SPEAKER = voice;
+
+/* ---- 出声排队 ----
+ * voice.speak 的语义是"前一句停掉，新的接上"（一个人不能同时说两句）。
+ * 整段说话时这是对的；一句一句说的时候就成了"每句都把上一句掐死"。
+ * 所以流式下必须排队：说完一句（按音频时长等它播完）再说下一句。
+ *
+ * gen 是代：一被打断，gen 加一，后面排着的一次都不再出声——
+ * 不然她被打断之后，嘴还会把排队里的两三句念完，看着像没听见。
+ */
+let speakChain = Promise.resolve();
+let speakGen = 0;
+/* 她这会儿是什么脸色，声音就拿它决定口气。
+ * 为什么读"现在"而不是"这一轮解析出来的"：流式说话时第一句可能在 mood 写出来之前
+ * 就已经出口了，那时候翻 JSON 找 mood 找不到。而脸色本来就是个持续状态。 */
+function moodNow() {
+  try { return (loop && typeof loop.mood === 'function') ? loop.mood() : null; }
+  catch { return null; }
+}
+/* 说一句。带标记的话在这里切成几段：标记本身不出声，变成段与段之间的静默。
+ *
+ * 为什么停顿要排在队列里而不是 setTimeout 完事：
+ * 队列是串行的，前一句还在播的时候插一个延时，那个停顿时机和上一句的声音重叠，
+ * 等于没停。所以延时也占一格，等它轮到才停。
+ *
+ * 为什么切成段不会多花合成钱（流式下）：流式本来就是一句一合成，
+ * 切段只是把"一句"变成"两段"，合成次数一次不多。非流式（?stream=off）会多一次，
+ * 那条路本来就是兜底，慢 1.5 秒换一个真实的停顿，值。 */
+function speakQueued(t) {
+  for (const part of splitScript(t)) speakPart(part);
+  return speakChain;
+}
+function speakPart({ text, pauseBefore }) {
+  const my = speakGen;
+  const mood = moodNow();
+  speakChain = speakChain.then(async () => {
+    if (my !== speakGen) return;
+    if (pauseBefore > 0) {
+      /* 打断要能穿透这段静默：等完再看一眼代数，变了就直接放弃，
+       * 不然她会"被打断了，还在安静地等半秒，然后开口"。 */
+      await new Promise(res => setTimeout(res, pauseBefore));
+      if (my !== speakGen) return;
+    }
+    const r = await voice.speak(text, { mood });
+    if (my !== speakGen) return;
+    /* 等这一句真的播完再排下一句。
+     * 优先用 voice 给的 done（onended 那一刻），它比估算准；
+     * 但 onended 在有些环境里不触发（被打断、上下文被挂起），所以加一道超时兜底：
+     * 到点了照常往下走，最坏退化成"按估算时长排队"，不会把后面的全卡死。
+     * 没声音（引擎没装/被关）时不等，否则每句白等两秒，越排越靠后。 */
+    if (!r || !r.ok) return;
+    const cap = Math.min(15000, (r.duration || 2) * 1000 + 500);
+    const hard = new Promise(res => setTimeout(res, cap));
+    await Promise.race([r.done || Promise.resolve(), hard]);
+  }).catch(() => { /* 一句出不来不该把后面全卡死 */ });
+  return speakChain;
+}
+function stopSpeak() {
+  speakGen += 1;
+  speakChain = Promise.resolve();
+  voice.stop();
+}
+window.__SPEAK = { queued: () => speakGen, stop: stopSpeak };
+/* 浏览器的自动播放策略：用户第一次碰页面（点一下 / 敲一下）才能出声。
+ * 所以第一次交互时解一次锁——不然开机那句自己说的话是哑的（声音在走，一个采样都不出）。
+ * 放在模块里，不能放在上面那段 classic 脚本里：那边看不见 voice。 */
+addEventListener('pointerdown', () => voice.unlock(), { once: true });
+addEventListener('keydown', () => voice.unlock(), { once: true });
+
+const brain = attachRoom(window, { registry: R });          // 内部 registerAll，9 个动作
+window.__BRAIN = brain;
+
+/* ---- 衣柜：读目录，不挡开机 ----
+ * 读不到就当作没有衣柜：换装动作不进窗口，其余照跑。
+ * 这不是"功能降级"，是"这间屋子没买衣柜"——两种情况行为一致。 */
+let WR = null;
+let ACT = null;
+async function waitForVrm(ms = 20000) {
+  const t0 = performance.now();
+  while (!window.__vrm && performance.now() - t0 < ms)
+    await new Promise(r => setTimeout(r, 100));
+  return window.__vrm;
+}
+async function loadOutfits() {
+  try {
+    const r = await loadWardrobe({ base: 'assets/wardrobe/' });
+    WR = r.wardrobe;
+    window.__WARDROBE = WR;
+    if (r.problems.length) console.warn('[wardrobe] 有件没读进来：', r.problems);
+    console.log('[wardrobe] ' + WR.ids().length + ' 件可穿：' + WR.ids().join(', '));
+    return WR;
+  } catch (e) {
+    console.warn('[wardrobe] 衣柜没读进来（不影响说话）：' + e.message);
+    return null;
+  }
+}
+
+/* ---- 屋子要记得：把上次的开关放回去 ----
+ * 她在记忆里记得"灯关着"，3D 屋子刷新后又亮着——认知和现实对不上。
+ * 只放开关，不放位置：站哪儿由她当下决定，钉在上次那儿反而像被摆好的道具。
+ * 返回改了几个，调用方拿去打日志（0 就什么都不说）。 */
+function restoreRoom(w) {
+  const lights = w && w.lights;
+  if (!lights) return 0;
+  let n = 0;
+  for (const it of (window.__INTS || [])) {
+    const want = lights[it.label];
+    if (typeof want !== 'boolean' || !!it.on === want) continue;
+    it.on = want;
+    try { it.use(want); n += 1; } catch (e) { console.warn('[room] 恢复「' + it.label + '」失败：' + e.message); }
+  }
+  return n;
+}
+
+/* ---- 世界内容：别人加进来的吃喝玩乐，也不挡开机 ----
+ * 和衣柜同一条规矩：读不到就当"这个世界还没人往里面加东西"。
+ * 一个活动只是一份 JSON，只能组合屋子里已有的动作（走过去 + 坐下 + 表情），
+ * 不能写坐标、不能替她说话——要不要喝茶仍然是她自己决定。 */
+async function loadWorld() {
+  try {
+    const r = await loadActivities({
+      base: 'assets/world/activities/',
+      registry: R,
+      getWin: () => window,
+      getAvatar: () => avatar,
+      getBrain: () => brain,
+    });
+    ACT = r.content;
+    window.__ACTIVITIES = ACT;
+    if (r.problems.length) console.warn('[world] 有内容没读进来：', r.problems);
+    console.log('[world] 加了 ' + ACT.names().length + ' 件事：' + ACT.names().join(', '));
+    return ACT;
+  } catch (e) {
+    console.warn('[world] 世界内容没读进来（不影响她自己过）：' + e.message);
+    return null;
+  }
+}
+
+const lineEl = document.getElementById('herline');
+const form = document.getElementById('sayform');
+const box = document.getElementById('saybox');
+const btn = document.getElementById('saybtn');
+const micBtn = document.getElementById('micbtn');
+const statEl = document.getElementById('bstat');
+
+const stat = (html, warn = false) => { statEl.innerHTML = warn ? `<span class="warn">${html}</span>` : html; };
+const flash = (msg, warn = false) => { stat(msg, warn); };
+let hideTimer = 0;
+/* 字幕上现在是哪一段。流式时它一直在长，所以必须记住——不记住就只能整段重设，
+ * 那样新的一句会把前一句顶掉，看起来像她话没说完就改口了。 */
+let saidText = '';
+function say(text) {
+  if (!text) return;
+  saidText = text;
+  lineEl.textContent = text;
+  lineEl.classList.add('on');
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => lineEl.classList.remove('on'), Math.max(6000, text.length * 240));
+}
+/* 流式专用：一句一句往字幕上加。
+ * 为什么不复用 say()：整段说完时字幕不该"闪一下再重排"，
+ * 而边说边出时新的一句必须接在后面，不能把前面那句抹掉（抹掉等于她没说过）。 */
+function sayAppend(text) {
+  const t = String(text || '');
+  if (!t) return;
+  saidText = (saidText || '') + t;
+  lineEl.textContent = saidText;
+  lineEl.classList.add('on');
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => lineEl.classList.remove('on'), Math.max(6000, saidText.length * 240));
+}
+
+// pose 存中文：开机那句是"你现在坐着"，不是"你现在sit"
+const POSE_ZH = { stand: '站着', sit: '坐着', lie: '躺着', walking: '走着' };
+// 动作登记表现在是英文名（协议那头要英文），界面上得说人话
+const ACT_ZH = {
+  look_at: '转头看了一眼', go_to: '走过去', use_furniture: '过去用了下',
+  toggle: '按了下开关', stand_up: '站起来', idle_pose: '换了个姿势',
+};
+/* 快照的形状归 js/brain/world.mjs 管（pose / near / lights），这里只负责把屋子里的
+   东西**抄**进那个形状。坐标一律不出屋子：她不需要知道自己在 x=1.22。 */
+/* 他在不在这间屋子里：只看页面的焦点和可见性，**不看"多久没动"**。
+ * 用计时判断"人走了"和定时器是同一个毛病——时间到了就替世界宣布一个事实。
+ * 切到别的窗口算走了（他确实不在这间屋子里了），回来算回来了。 */
+/* 初始按"标签可见"算：页面是他打开的，就当他在。不看 hasFocus——
+   DevTools 一开焦点就跑了，会平白无故报一句"他回来了"。 */
+let __present = document.visibilityState === 'visible';
+const worldSnap = () => {
+  const st = window.__state || {};
+  const near = brain.near();
+  const lights = {};
+  for (const it of (window.__INTS || [])) lights[it.label] = !!it.on;
+  return { pose: POSE_ZH[st.poseName] || '站着', near: near ? near.label : null, lights, present: __present };
+};
+/* 屋子里的开关变了就报一声。by 只有两个来源：他在键盘上按的（him），
+   她自己走过去按的（her，由 room-bridge 传进来）。没有第三个。 */
+window.__worldChanged = by => {
+  const r = percept.observe(worldSnap(), { by: by || 'him' });
+  // 命中规则就醒一次。醒来的原因是"这件事刚发生"，不是"过了 N 秒"。
+  // 她正在说话/正在想的时候不插队，等这一轮结束队列里那条还在。
+  if (r.raised.length && !loop.busy && !up) wake();
+  return r;
+};
+
+/* 焦点/可见性变了就是"他走了"或"他回来了"。只在这两件事真的变了时报一次，
+   不是每隔几秒看一次——那是定时器的形状。 */
+function __setPresent(v) {
+  if (v === __present) return;
+  __present = v;
+  window.__worldChanged('him');
+}
+addEventListener('focus', () => __setPresent(true));
+addEventListener('blur', () => __setPresent(false));
+document.addEventListener('visibilitychange', () =>
+  __setPresent(document.visibilityState === 'visible'));
+window.__PRESENT = __setPresent;      // 调试用：__PRESENT(false) 等于"他走了"
+
+/* ---- 问模型 ----
+ * 两种走法，由 ?stream= 决定（默认边说边出）：
+ *   off    整段：等它全部写完再给（老行为，出事时一键退回）
+ *   quiet  只流不说：能立刻掐断、能看到她在写，但一个字都不提前放出去
+ *   speak  边说边出：整句一出就上字幕和声音
+ *
+ * 这里只负责搬运。哪句该先说、要不要说，全在 js/brain/say-stream.mjs 和模型那边。
+ *
+ * 流式的三个坑都是照别人的实现来的，不是自己想的（见 js/brain/sse.mjs 顶部）：
+ *   中文跨 chunk 被切断 → TextDecoder({stream:true})；
+ *   一条消息被切成两半 / 两条粘在一起 → 必须自己缓冲到空行；
+ *   [DONE] 可能和最后一条数据挤在同一个 chunk → 当成独立消息匹配。
+ */
+async function chat({ system, messages, signal, onDelta, json }) {
+  const useStream = STREAM_MODE !== 'off';
+  const r = await fetch('/api/chat', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    /* json:true 让上游按 JSON 对象回（结构化输出）。这个开关只有大脑能给，
+     * 页面原样透传——页面不决定她怎么输出，和它不决定她说什么是一个道理。 */
+    body: JSON.stringify({ system, messages, ...(json ? { json: true } : {}), ...(useStream ? { stream: true } : {}) }),
+    /* 打断要真的掐断这条请求：不然"打断"只是我们不再看结果，
+     * 网还在跑、钱还在花，她那边其实什么都不知道。 */
+    signal,
+  });
+
+  const ct = r.headers?.get?.('content-type') || '';
+  /* 服务端没给流（老版本、或者流式这条路自己坏了）就退回整段读。
+   * 不退回的后果：她一句话都不说，而错误看起来像"模型没回"。 */
+  if (!useStream || !r.body || !ct.includes('text/event-stream')) {
+    const j = await r.json().catch(() => ({ ok: false, error: 'HTTP ' + r.status }));
+    if (!j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    if (onDelta && j.content) { try { onDelta(j.content, j.content, 1); } catch { /* 页面那边坏了不该断这一轮 */ } }
+    return j;
+  }
+
+  let content = '';
+  let fin = null;
+  let bad = null;
+  const dec = createSseDecoder({
+    onEvent: ev => {
+      if (ev.data === '[DONE]') return;                 // 上游的结束标记，服务端已经翻译过了，这里只是兜底
+      let j;
+      try { j = JSON.parse(ev.data); } catch { return; }
+      if (j.error) { bad = j.detail ? `${j.error}：${j.detail}` : j.error; return; }
+      if (typeof j.d === 'string') {
+        content += j.d;
+        if (onDelta) { try { onDelta(j.d, content, 1); } catch { /* 同上 */ } }
+      }
+      if (j.done) fin = j;
+    },
+  });
+
+  const reader = r.body.getReader();
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      dec.push(value);
+    }
+  } finally {
+    try { dec.end(); } catch { /* 收尾失败也要把已经收到的话交出去 */ }
+    try { reader.releaseLock?.(); } catch { /* 已经放了 */ }
+  }
+  if (bad) throw new Error(bad);
+  const out = fin || { content, ms: 0, usage: null };
+  /* finish 要带出去：'length' 说明被截断（JSON 截断一定是坏的），大脑据此换一句话重发。 */
+  return { ok: true, content: fin?.content ?? content, ms: out.ms, usage: out.usage, model: out.model,
+           thinking: out.thinking, finish: fin?.finish || null };
+}
+
+const store = httpStore();
+const memory = createMemory({ store });
+const initiative = createInitiative();
+
+/* ---- 游戏端口：她坐在那儿玩，不是我们控游戏 ----
+ * 游戏只交上来"局面"和"语义动作"；坐标、点击位置留在适配器里。
+ * 事件走 perception.signal（game_turn / game_over），和"灯灭了"是同一条路——
+ * 她接着玩的原因是"游戏刚回了她一句"，不是定时器。 */
+const gameBridge = createGameBridge({
+  registry: R,
+  perception: { signal: ev => handleSignal(ev) },
+});
+
+/* 执行层自己造一份，把游戏也交给它。loop 拿同一个，说话才不会两个出口。 */
+const exec = createExecutor({
+  registry: R, avatar, game: gameBridge,
+  record: e => memory.record(e),
+});
+
+/* windowFor：每次开口前先问屋子"这次允许做哪几件"，再看游戏那一半。
+   不给就全开（旧行为），给了就真的收窄——提示词只列这些，执行也只认这些。 */
+const loop = createLoop({
+  memory, registry: R, initiative, chat, executor: exec,
+  entities: () => brain.entities(),
+  windowFor: () => {
+    const room = brain.windowFor();
+    const g = gameBridge.windowFor();
+    if (!g) return room;
+    return {
+      names: [...new Set([...(room?.names || []), ...g.names])],
+      note: [room?.note, g.note].filter(Boolean).join('；'),
+    };
+  },
+  avatar,
+  /* 穿在身上的和正在玩的，都是"现在这个场景"，不是记忆。每一轮现读。 */
+  /* 每次开口前把"她身上现在的状态"和"她手上有什么"一起递进去。
+   * 动力只说她难受的那几样——不难受就一个字都不加。 */
+  extra: () => [WR ? WR.describe() : '', gameBridge.brief()].filter(Boolean).join('\n'),
+});
+
+/* ---- 活字层：一边流一边说 ----
+ * 它只做三件事：从还没写完的 JSON 里抠出 say、按整句切开、定稿时算清哪段还没说。
+ * 不补字、不改字、不决定要不要说——那是模型的事，说清楚在 js/brain/say-stream.mjs。
+ *
+ * speak 走的是同一个执行层（loop.executor），不是自己造一个出口：
+ * 两个出口的后果是字幕说一遍、声音再说一遍，账也对不上。 */
+let liveAttempt = 0;
+const live = createLiveSay({
+  mode: STREAM_MODE,
+  show: t => sayAppend(t),
+  speak: t => loop.executor.speak(t, { append: true }),
+  stop: () => stopSpeak(),
+  onEvent: (kind, info) => {
+    /* 定稿和她已经流出去的话对不上：只可能是模型改了口，或者我们抠错了。
+     * 记一条，别装没发生——这两种都要查得出来。 */
+    if (kind === 'mismatch') {
+      try {
+        memory.record({ who: 'system', kind: 'event',
+          text: `她说出去的和最后定下来的接不上（先说「${String(info.spoken).slice(0, 40)}…」），后面那半句照定稿说。`,
+          salience: 0.5 });
+      } catch { /* 记不上不影响说话 */ }
+    }
+  },
+});
+/* 换遍数（取正文再来一次）时清取字缓冲，但已经说出口的照样算说过。 */
+function liveDelta(d, full, attempt = 1) {
+  if (attempt !== liveAttempt) { liveAttempt = attempt; live.nextAttempt(); }
+  return live.onDelta(d, full);
+}
+window.__LIVE = live;
+
+/* 轮到说话了：把流里已经说过的那部分从定稿里扣掉，只补没说过的。
+ * 这一步不做的话，流里说过一遍、定稿再说一遍——她会把整段话说两次。 */
+function deliverSay(text) {
+  const fin = live.finish(text);
+  if (!fin.spoke) {
+    loop.executor.speak(text);          // 没走过流（off/quiet，或者她就没写 say）
+    return fin;
+  }
+  if (fin.rest) loop.executor.speak(fin.rest, { append: true });
+  if (text) say(text);                   // 字幕定稿：流里可能少个标点，这里以定稿为准
+  return fin;
+}
+
+/* 感知：只报告世界变了，不挑动作。命中的规则往队列里放一条，然后叫醒她一次。
+   注意这里**没有定时器** —— 醒来的原因是"灯灭了"，不是"过了 5 秒"。 */
+const percept = createPerception({
+  rules: [],
+  raise: obj => initiative.raise(obj),
+});
+window.__PERCEPT = percept;
+
+/* ---- 感官：光标 / 键盘 / 屏幕 ----
+ * 三样都只投事件，不进世界快照。
+ * 默认只开键盘这一路（且一串只报一次）；光标默认关（鼠标一直在动，报了全是噪音）；
+ * 屏幕默认关，要 __SENSES.consent(true) 才看，而且每次只收"看懂的一句话"。
+ * 键盘事件只记不醒：他知道她在旁边就够了，不必每敲一下都花一次模型调用。 */
+const senses = createSenses({
+  emit: (type, detail) => {
+    const r = percept.signal({ type, detail, by: 'him' });
+    if (r.matched && type === 'screen' && !loop.busy && !up) wake();
+    return r;
+  },
+});
+window.__SENSES = senses;
+
+/* ---- 眼睛：她真的能看见屏幕 ----
+ * 三件事各自已经存在，这里只接线：
+ *   桌面壳 desktop:capture（截一张，返回 dataURL，不落盘）
+ *   → /api/see（tools/vision.mjs，一帧进一句话出）
+ *   → senses.screen（只收那句话，投一条事件，要 consent）
+ *
+ * 为什么顺序不能换：**先查许可，再截屏**。反过来的话，就算"截了没发"，
+ * 图也已经在内存里了——隐私这件事只认"有没有拿过"，不认"有没有用"。
+ * 这个顺序写在 eyes.mjs 里，这里不做第二份判断。
+ *
+ * 浏览器里没有 window.desktop，所以 capture 传 null：
+ * 她会明说"不在桌面壳里"，而不是按一下什么都不发生。 */
+const eyes = createEyes({
+  capture: (typeof window.desktop?.capture === 'function') ? () => window.desktop.capture() : null,
+  senses,
+  minIntervalMs: 3000,
+});
+window.__EYES = eyes;
+window.__LOOK = (why = '') => eyes.look({ why });
+
+/* 她自己能要求看一眼。不做成定时看——"一直看着"和"看一眼"是两种关系，
+ * 前者是监控。代价：这一下要花一次多模态调用，所以它是个动作，不是背景进程。 */
+R.register({
+  name: 'look_screen',
+  description: '看一眼他现在的屏幕。他说"你看一下"、或者你确实需要知道他在干什么时用。'
+             + '看到的一句话会写进下一轮回执，你就能说出来。',
+  intent: '看他的屏幕',
+  schema: {},
+  run: async () => {
+    const r = await eyes.look({ why: '她自己要求的' });
+    if (!r.ok) return { ok: false, reason: r.reason, message: r.message };
+    return { ok: true, effect: `看了一眼他的屏幕：${r.summary}` };
+  },
+});
+
+/* 按钮：按一下 = 允许 + 看一次。
+ * 为什么不拆成两步（先"允许"再"看"）：第一次点只开开关，人会以为按钮坏了。
+ * 他按下去这个动作本身就是许可；收回的方式写在 title 里，不藏在设置里。 */
+const eyeBtn = document.getElementById('eyebtn');
+async function lookByHand() {
+  if (eyeBtn.dataset.busy === '1') return;
+  eyeBtn.dataset.busy = '1';
+  eyeBtn.textContent = '…';
+  eyeBtn.classList.add('on');
+  eyeBtn.classList.remove('bad');
+  try {
+    if (!senses.stats().consent) {
+      senses.consent(true);
+      console.log('[eyes] 他按了「看」：屏幕许可打开（刷新收回）');
+    }
+    const r = await eyes.look({ why: '他按了按钮' });
+    if (r.ok) {
+      flash(`看见了：${r.summary}`);
+    } else {
+      flash('没看成：' + (r.message || r.reason), true);
+      eyeBtn.classList.add('bad');
+    }
+  } finally {
+    eyeBtn.dataset.busy = '';
+    eyeBtn.textContent = '看';
+    eyeBtn.classList.remove('on');
+  }
+}
+eyeBtn?.addEventListener('click', lookByHand);
+window.__LOOK_BTN = lookByHand;
+
+addEventListener('pointermove', e => {
+  senses.cursor({ x: e.clientX, y: e.clientY, w: innerWidth, h: innerHeight });
+}, { passive: true });
+async function loadRules() {
+  try {
+    const r = await fetch('/rules/room.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const n = percept.setRules(j.rules || []);
+    console.log('[perception] 规则 ' + n + ' 条：' + percept.rules().map(x => x.id).join(', '));
+    return n;
+  } catch (e) {
+    console.warn('[perception] 规则没载入（不影响说话）：' + e.message);
+    return 0;
+  }
+}
+
+window.__MEM = memory; window.__STORE = store; window.__LOOP = loop; window.__INI = initiative;
+READY.mark('brain', { actions: R.size(), caps: [...avatar.caps()].length });
+window.__RAISE = (reason, target, detail, candidates) => initiative.raise({ reason, target, detail, candidates });
+window.__WAKE = () => wake();
+
+/* ---- 外面的话：一个入口，来源可插拔 ----
+ * 弹幕、群聊、语音转写、别的脚本，都从 /api/in 进来，这里只负责变成"她说得出的一句话"。
+ * 三条界线，改之前先读：
+ *   ① 收下 ≠ 要回。话进 memory（loop.hear），回不回是她读到之后的判断。
+ *   ② 什么时候给她看是**流量**问题（?in=every|window|never），不是内容问题。
+ *      不许在收的时候替她挑"这条值得回"——那是外部算法替她想。
+ *   ③ 拿到一批就再来一轮，但那一轮说什么完全由她，页面一个字都不补。
+ * ?in=every 一个人聊；window 直播/群聊（默认，攒 1.2 秒）；never 只收，等她自己醒。 */
+const IN_POLICY = new URLSearchParams(location.search).get('in') || 'window';
+const chatIn = createChatIn({
+  loop,
+  policy: IN_POLICY,
+  windowMs: 1200,
+  onBatch: () => { wantTurn = true; kick(); },
+  onRepeat: m => { try { memory.record({ who: 'system', kind: 'event', text: `${m.name || '有人'}这句话被连着说了 ${m.count} 遍。`, salience: 0.3 }); } catch {} },
+});
+window.__IN = chatIn;
+window.__SAY = (text, name = '你') => chatIn.receive({ text, from: name, name, source: 'script' });
+
+/* ---- 听：他说的话从麦克风进来 ----
+ * 走的是 chat-in 的 voice 来源，和弹幕、别的脚本同一条路：
+ * 话进记忆（source:'voice'），回不回、什么时候回是她的事。
+ *
+ * 为什么不让语音直接进 send()：send 是"一条一轮"的直连，而语音是个**外线**——
+ * 它会断、会听错、会连着来三句。外线该有的一律在 chat-in 那头（合并、时机、上限）。
+ * 唯一多出来的一件事是打断，见下面 heardFromMic 里那一段。
+ *
+ * 引擎是 Edge 自带的那个（js/brain/hearing.mjs 里说清了代价：要联网，
+ * 识别的活儿在微软那边做）。要换成本地引擎，换的是那个模块的 make 参数，这里一行不用动。 */
+function heardFromMic({ text }) {
+  const r = chatIn.receive({ text, from: 'him', name: '你', source: 'voice' });
+  if (!r.ok) {
+    flash(r.reason === 'empty' ? '没听清，再说一遍？' : '这句话没进来：' + r.reason, true);
+    return r;
+  }
+  /* 同一句连着说两遍：chat-in 已经并成一件（记了次数）。不当第二件事处理。 */
+  if (r.merged) return r;
+
+  if (up) {
+    /* 她正说着/正想着的时候他开口了。三件一起做，和打字那条路一样：
+     *   ① 停嘴——这是反射，不是她的决定（P2 的同一层）
+     *   ② 作废流里还没说的半句
+     *   ③ 掐掉这一轮请求（她再来一轮，读的是刚记下的这句话）
+     * recorded:true 是因为这句话 chat-in 刚刚已经落过盘了，
+     * 不再记第二份——不然她会以为他每隔 0 毫秒重复了一遍。 */
+    stopSpeak();
+    live.abort();
+    const ir = loop.interrupt({ text, from: 'him', name: '你', source: 'voice', recorded: true });
+    wantTurn = true;
+    flash(ir.interrupted ? '她停下来听你说'
+      : ir.stopped ? '她停下脚步听你说'
+      : '她听见了，做完手上这件就接你');
+    return r;
+  }
+
+  /* 语音是整句：不等那 1.2 秒的攒批窗口。
+   * 窗口是给弹幕刷屏用的——一句已经断句的话再攒一次，只是让他白等 1.2 秒。 */
+  chatIn.flush();
+  return r;
+}
+
+/* 按钮长什么样，由状态决定（七个状态在 hearing.mjs 里）。
+ * 不在这里猜"应该算在听吧"：asking 和 listening 都算开着，waiting 不算——
+ * 那几百毫秒里她其实听不见，按钮要是还红着，就是在骗人。 */
+function micPaint(s) {
+  /* 只有 listening 才是红的。
+   * asking（等他点权限框）和 waiting（引擎自己断了、正在接回来）都不是"在听"——
+   * 那两个状态里她一句也听不见。按钮红着就是在骗人，而骗人的后果很具体：
+   * 他对着一个还没打开的麦克风说完了整段话，然后怪她不回。
+   * （注意别把变量名写成 live：模块里已经有一个 live 是流式说话的那一层。） */
+  micBtn.classList.toggle('on', s.state === 'listening');
+  micBtn.classList.toggle('wait', s.state === 'asking' || s.state === 'waiting');
+  micBtn.classList.toggle('bad', s.state === 'denied' || s.state === 'unsupported' || s.state === 'error');
+  micBtn.textContent = s.state === 'listening' ? '在听' : '听';
+  micBtn.title = s.state === 'listening' ? '在听你说（再点一下关掉）'
+    : s.state === 'asking' ? '在等麦克风（浏览器问权限，或者系统正在打开设备）'
+    : (s.reason || '按一下开始听（用 Edge 的语音识别）');
+  if (s.state === 'denied' || s.state === 'unsupported' || s.state === 'error')
+    flash(s.reason || '听不了', true);
+}
+
+const hearing = createHearing({
+  onSaid: heardFromMic,
+  /* 半句只给他看，一个字都不进记忆：那是"她正在听"的证据，不是他说过的话。 */
+  onPartial: p => { if (!up) stat('在听… ' + p); },
+  onState: micPaint,
+});
+window.__HEAR = hearing;
+/* 调试口：假装引擎听出了这一句。只跳过麦克风，后面全走真的
+ * （chat-in → 记忆 → 攒批 → 一轮）。冒烟测试拿它验接线，验不了"耳朵准不准"。
+ * 注意它管的是"进她耳朵"，不是"出她嘴巴"——她的声音在 __SPEAKER。 */
+window.__VOICE = text => heardFromMic({ text });
+
+micBtn.addEventListener('click', () => {
+  const r = hearing.toggle();
+  if (r && r.ok === false) flash(r.message || '听不了', true);
+  if (hearing.on()) flash('在听——说完一句它会自己断句');
+  else flash(hearing.status().last ? '不听了' : '没在听');
+});
+
+let up = false;
+
+function paint(extra = '') {
+  const st = loop.stats();
+  const ev = memory.events().length;
+  const lf = st.lastFail;
+  // 失败要能查：只说"2 次没成"看的人不知道该修哪，所以把最后一次的名字、原因、责任方都摆出来
+  const failText = st.actionFails
+    ? `（<span class="warn" title="${lf && lf.message ? lf.message.replace(/"/g, '&quot;') : ''}">${st.actionFails} 次没成`
+      + (lf ? `：最近 ${lf.name} → ${lf.reason || '未知'}${lf.by ? '（' + (lf.by === 'her' ? '她那边' : '屋子那边') + '）' : ''}` : '')
+      + '</span>）'
+    : '';
+  stat(`记忆 <b>${ev}</b> 条 · 记住 <b>${st.remembers || 0}</b> / 查过 <b>${st.reads || 0}</b> 次 · 上下文 <b>${st.avgChars || 0}</b> 字 · 动作 <b>${st.actions}</b> 次`
+     + (st.heard ? ` · 听见 <b>${st.heard}</b> 句` + (st.interrupts ? `（打断 ${st.interrupts}）` : '') : '')
+     + (st.wakesWithModel
+        ? ` · 自己醒 <b>${st.wakesWithModel}</b> 次` + (st.quiet ? `（${st.quiet} 次没动）` : '')
+        : '')
+     + (st.staleReleases ? ` · <span class="warn">卡住自愈 ${st.staleReleases}</span>` : '')
+     + failText
+     + (extra ? ' · ' + extra : ''));
+}
+
+/* ---- 她在想的时候他又说了一句：先听见，再决定断不断 ----
+ * 原来这里 `if (up) return` —— 输入框没禁用，他按了回车，那句话就没了。
+ * 后来改成排一句队，但那还是"等这一轮完再听"，体感上她没在听。
+ *
+ * 现在的三段：
+ *   ① 停嘴：他说话的时候她不该继续念（声音停掉，字幕留着）
+ *   ② 听见：话立刻进 memory（loop.hear），这一轮读不到，下一轮一定读得到
+ *   ③ 断不断：只在"她正在想"的时候掐掉这次请求；"正在做"不掐——
+ *      放下手上的事是她自己的判断，做完这一下再看他刚说了什么
+ * 断掉之后不用在这里排新的一句：wantTurn 一置，这一轮结束就会自己接上。
+ */
+let wantTurn = false;
+async function send(text) {
+  text = String(text || '').trim();
+  if (!text) return { ok: false, reason: 'empty' };
+  if (up) {
+    /* 打断三件一起做：停下正在出的声、把流里还没说的作废、掐掉那条请求。
+     * 少做第一件，她嘴还在动；少做第二件，断了之后还会蹦出半句。 */
+    stopSpeak();
+    live.abort();
+    const r = loop.interrupt({ text, from: 'him', place: worldSnap().pose });
+    wantTurn = true;
+    /* 三句不同的实话：想的时候被掐（立刻停嘴）、走的时候被叫停（脚步停下）、
+     * 正在做但手上没有可停的（开关灯这种一帧就完了的动作）。
+     * 合成一句的话，他分不清她到底停了没有。 */
+    flash(r.interrupted ? '她停下来听你说'
+      : r.stopped ? '她停下脚步听你说'
+      : '她听见了，做完手上这件就接你');
+    return { ok: true, heard: true, interrupted: !!r.interrupted, stopped: !!r.stopped };
+  }
+  return runTurn({ text });
+}
+
+/* 一轮真正跑起来的入口。这里只管"跑"和"把话说出去"，
+ * 想什么全在 loop 里，说什么全在模型里——页面不插一句自己的话。 */
+async function runTurn({ text = '', heard = false } = {}) {
+  releaseUiStale();
+  if (up) { wantTurn = true; return { ok: false, reason: 'busy' }; }
+  up = true; upSince = Date.now(); btn.disabled = true;
+  flash(heard ? '她听见了…' : '她在想…');
+  /* 新一轮：字幕清空、活字层归零。上一轮说过的话不带到这一轮里。 */
+  liveAttempt = 0;
+  live.begin();
+  saidText = '';
+  try {
+    const r = await loop.turn({ text, heard, world: worldSnap(), place: worldSnap().pose, onDelta: liveDelta });
+    if (r.ok) {
+      /* 她选择不接（loop 的 quiet）：不张嘴，也不算"刚说过话"。
+       * 但不能什么都不显示——按钮点下去、屏幕上一点反应都没有，看起来像坏了。
+       * 只交一句实话（听见了，没接），页面不替她补台词。 */
+      if (r.say) {
+        lastHumanAt = Date.now();                 // 空时刻别插进正在进行的对话里
+        clockPort.spoke();
+        deliverSay(r.say);
+      }
+      /* 被叫住的那一轮照常显示耗时，但多一句实话：
+       * 不然他会以为她走到了（她那句 say 说的就是"我过去"）。 */
+      paint(r.quiet ? `${r.ms} ms　（她听见了，没接）`
+        : r.ms + ' ms' + (r.stopped ? '　（被叫住，停在半路）' : '')
+          + (live.live ? `　流式：首句 ${live.stats().firstMs ?? '—'}ms` : ''));
+    } else if (r.reason === 'interrupted') {
+      /* 是我们让停的，不是坏了。不弹红字，也不记成一次失败。 */
+      paint('（打断）');
+    } else if (r.reason === 'stale') {
+      flash('上一轮过期了（卡太久），这一轮重新来', true);
+    } else {
+      flash('这一轮没跑成：' + (r.error || r.reason), true);
+    }
+    return r;
+  } catch (e) {
+    /* 留一份在原地：这一轮到底为什么没跑成，只有这里知道。
+     * 从外面（CDP/自动化）只能看到"她没说话"，看不出是 fetch 挂了还是别的——
+     * 真页面排查花的时间，一半都花在猜这个上。 */
+    window.__LASTERR = String(e?.message || e);
+    flash('这一轮没跑成：' + e.message, true);
+    return { ok: false, error: e.message };
+  } finally {
+    up = false; btn.disabled = false; box.focus();
+    /* 这一轮里有人说过话（他插嘴 / 外面来消息），就再接一段——
+     * 接的内容不是我们写的，是她下一轮从记忆里读到的那些话。 */
+    if (wantTurn) setTimeout(kick, 0);
+  }
+}
+
+/* 该不该再来一轮，只有一个判据：有没有人说过还没被回答的话。
+ * 这个判据来自 loop（它知道听见了什么），不是页面自己数。 */
+function kick() {
+  if (up) return;
+  if (!wantTurn) return;
+  wantTurn = false;
+  loop.takeOwed();          // 欠的那一句这一轮就来还（这个标记只能由接的人清）
+  runTurn({ heard: true });
+}
+
+/* 调试口：从外面发一句、看这一层的锁现在是什么样。
+ * 为什么要有：自动化测试（tools/refresh-and-check.py 等）走的是"填输入框 + 提交表单"，
+ * 那条路一遇到"上一轮还没收尾"就静默变成打断——看不见返回值，就只能猜。
+ * 有了这两个口，测的时候能直接拿到 send() 的返回值和 up/wantTurn，
+ * 分得清"她没回话"和"这话根本没跑"。 */
+window.__SEND = t => send(t);
+window.__UI = () => ({ up, wantTurn, upSince, phase: loop.phase });
+
+/* 界面这一层的锁也不能卡死。loop 那边有 90 秒的自愈，这里是它的最后一道：
+ * 万一 loop 的 promise 永远不回来（比如页面被挂起），按钮不能一直灰着。 */
+let upSince = 0;
+function releaseUiStale() {
+  if (!up) return false;
+  if (Date.now() - upSince < 120e3) return false;
+  up = false; btn.disabled = false;
+  try { memory.record({ who: 'system', kind: 'event', text: '界面这边卡了一下，我把它放开了。', salience: 0.6 }); } catch {}
+  return true;
+}
+
+async function wake({ beat: isBeat = false } = {}) {
+  if (up) return { ok: false, reason: 'busy' };
+  up = true;
+  liveAttempt = 0;
+  live.begin();
+  saidText = '';
+  try {
+    const r = await loop.wake({ world: worldSnap(), beat: isBeat, onDelta: liveDelta });
+    if (r.ok && r.acted) {
+      deliverSay(r.say);
+      const a = (r.results || [])[0];
+      paint(a ? '她' + (ACT_ZH[a.action] || a.action) : '她自己动了一下');
+    }
+    /* 空时刻里她选择什么都不做，是正常的一拍，不要弹"没有要做的事"——
+     * 每十二分钟跳一次提示，等于我们在催她。 */
+    else if (r.ok && !isBeat) { flash('没有要做的事（没花一次模型调用）'); paint(); }
+    return r;
+  } finally { up = false; }
+}
+
+/* 游戏/键盘这类事件：先过规则，命中就醒来一次。
+   注意这里不是"每 N 秒看一次"，是"真有一件事发生了"。 */
+function handleSignal(ev) {
+  const r = percept.signal(ev);
+  if (r.matched && !loop.busy && !up) wake();
+  return r;
+}
+
+/* 开一局。谁按的、玩什么，都是内容；端口只知道"现在有一局"。 */
+async function playGame(id = 'guess') {
+  if (id !== 'guess') return { ok: false, reason: 'no_such_game' };
+  if (gameBridge.current) return { ok: false, reason: 'already_playing', game: gameBridge.current };
+  gameBridge.attach(guessGame({ maxTurns: 8 }), { autoContinue: true });
+  flash('她坐下来，开了一局猜数字');
+  const r = await send('你按下了猜数字的开始键，坐下来陪她玩一局。');
+  return { ok: true, turn: r, game: gameBridge.current };
+}
+window.__GAME = gameBridge;
+window.__PLAY = playGame;
+window.__guessGame = guessGame;   // 调试用：不开模型也能验端口
+
+window.__TURN = send;
+
+/* ---- 时钟端口：全项目唯一的一个定时器 ----
+ * 它只决定"现在要不要给她一个时刻"，不决定"她此刻是什么感觉"。
+ * **这是接口，不是"自主已经做出来了"**：换钟不改大脑、不改屋子。
+ *   ?clock=beat    默认，过一段给一个空时刻（idleMs，默认 12 分钟）
+ *   ?clock=quiet   永不主动（只在有事 / 有人说话时动）
+ *   ?clock=manual  只由外面叫（G 键、脚本、别的程序）
+ * 想加自己的钟：js/brain/clock.mjs 顶上有说明 + registerClock。
+ *
+ * 没事的时候它一分钱不花：不调模型、不发一个字，只读几个数就返回。 */
+/* ?beat=30 把空时刻的间隔临时缩到 30 秒，只给调试用。
+ * 这不是功能开关：改的只是"多久给一个时刻"，永远不改"这个时刻里她该想什么"。 */
+const QS = new URLSearchParams(location.search);
+const CLOCK_KIND = QS.get('clock') || 'beat';
+const BEAT_IDLE = Number(QS.get('beat')) * 1000 || undefined;
+const clockPort = createClock({
+  kind: CLOCK_KIND,
+  idleMs: BEAT_IDLE,
+  wake: ({ reason }) => wake({ beat: reason === 'beat' }),
+  state: () => ({
+    busy: loop.busy || loop.queued > 0,
+    pending: initiative.outstanding(),
+    ownPlan: memory.openAgenda().length,
+    sinceHumanMs: Date.now() - lastHumanAt,
+  }),
+});
+let lastHumanAt = -Infinity;
+startClock(clockPort);
+window.__CLOCK = clockPort;
+window.__CLOCKS = listClocks();
+window.__POKE = () => clockPort.poke();      // 外面叫一次：manual 钟就是这么用的
+READY.mark('clock', { kind: CLOCK_KIND, clocks: listClocks().length });
+
+addEventListener('keydown', e => {
+  if (e.target && e.target.closest && e.target.closest('input,textarea')) return;
+  /* 只投"他在敲"这一件事实，不投按了什么键（密码不该进记忆）。
+   * 在输入框里打字不算——那是跟她说话，已经单独处理了。 */
+  if (!['Shift','Control','Alt','Meta','CapsLock'].includes(e.key)) senses.key(e.key);
+  if (e.key.toLowerCase() === 'g') wake();          // G = 让她自己动一下（调试用，不是定时器）
+});
+
+form.addEventListener('submit', e => { e.preventDefault(); send(box.value); box.value = ''; });
+document.getElementById('playbtn').addEventListener('click', () => {
+  playGame('guess').then(r => {
+    if (!r.ok) flash(r.reason === 'already_playing' ? '她已经在玩了' : '这局开不起来', true);
+  });
+});
+/* 输入这条路到这儿才算通：输入框、表单、玩一局、键盘都绑好了。
+ * 冒烟测试要等这个勾——上一版等 __LOOP（2787 行有值），而这几行在 3020 之后，
+ * 中间那段时间里 requestSubmit 会真的把表单提交出去，页面被导航重载，
+ * 表现就是"填了没反应"，而且只在开机那一瞬偶发。 */
+READY.mark('ui', { form: !!form, box: !!box, btn: !!btn, mic: hearing.status().state });
+
+/* ---- 开机：先看服务在不在，再装记忆，最后报一行现状 ---- */
+(async () => {
+  let health = null;
+  try {
+    const r = await fetch('/api/health', { cache: 'no-store' });
+    health = await r.json();
+  } catch { /* 没起服务 */ }
+
+  if (!health || !health.ok) {
+    stat('这个页面要用 <b>node tools/serve.mjs</b> 打开才有模型和记忆（现在没有 /api）', true);
+    box.disabled = true; btn.disabled = true;
+    /* 这一种"没装完"不是 bug，是没起服务。缺的块照实报，但 note 说清楚原因——
+     * 冒烟测试据此区分"页面坏了"和"服务没开"。 */
+    console.log('[ready] ' + READY.finish('没有 /api：先起 node tools/serve.mjs').summary());
+    return;
+  }
+  if (!health.hasKey) {
+    stat('服务起了，但没有密钥（keys.json 或 ~/.dsh/.credentials.yaml）', true);
+    box.disabled = true; btn.disabled = true;
+  }
+
+  await store.preload();
+  const load = memory.load();
+  if (!memory.getWorld().identityHash) memory.stampIdentity();
+
+  /* 屋子要记得：把上次离开时的灯和窗帘放回去。
+   * 她记得"灯关着"，刷新后灯又亮了——认知和现实对不上（宪法条款 4 第 2 条）。
+   * 只恢复开关，不恢复她的位置：站哪儿该由她当下决定，不该被钉在上次那儿。
+   * **必须在立基线之前**，否则这一下会被当成"灯刚被打开"报给她。 */
+  const fixed = restoreRoom(memory.getWorld());
+  if (fixed) console.log('[room] 把 ' + fixed + ' 个开关放回上次的样子');
+
+  percept.observe(worldSnap(), { by: 'none' });      // 立基线：开机那一刻不算"刚变了"
+  await loadRules();
+  await loadOutfits();
+  await loadWorld();
+  /* 三份都是网络来的，缺任何一份都只是"她少知道一点"，页面照样能用，
+   * 所以这里不拒绝装完——但缺了什么要在勾上留着，别当成装好了。 */
+  READY.mark('content', {
+    rules: percept.rules().length,
+    wardrobe: WR ? WR.list().length : 0,
+    activities: ACT ? ACT.names().length : 0,
+  });
+
+  /* ?wear=scarf-red,vest-cream：给调试和分享用（"今天穿这套"）。
+   * 只是替人点一下，不是替她决定——正常运行时穿什么由她自己说。 */
+  const wantWear = new URLSearchParams(location.search).get('wear');
+  if (WR && wantWear) {
+    for (const id of wantWear.split(',').map(x => x.trim()).filter(Boolean)) {
+      const r = WR.equip(id);
+      if (!r.ok) console.warn('[wardrobe] 穿不上 ' + id + '：' + r.message);
+    }
+    await waitForVrm();
+    const ap = WR.applyTo(avatar);
+    console.log('[wardrobe] 试穿 ' + wantWear + '：' + (ap.ok ? '好，' + (ap.value?.count ?? '?') + ' 层' : ap.message));
+  }
+
+  console.log('[brain] 动作空间 ' + R.size() + ' 个\n' + R.describeAll());
+  console.log('[brain] 记忆载入：' + JSON.stringify(load));
+
+  /* ---- 外面的话：订阅 + 心跳 ----
+   * 两件都不是"她想什么"，是连线：
+   *   SSE 订阅：有消息就推过来，断了浏览器自己重连（不在这写重连逻辑）
+   *   心跳：每 30 秒告诉服务端"页面还活着"。桌面壳靠它判断要不要重载——
+   *         一个卡死的页面救不了自己，只有外面能拉它。
+   * 先打一次心跳，否则开机到第一次心跳之间这 30 秒里，"没心跳"看起来像卡死。 */
+  function startInbox() {
+    try {
+      const es = new EventSource('/api/in/stream');
+      es.onmessage = e => {
+        try { chatIn.receive(JSON.parse(e.data)); }
+        catch (err) { console.warn('[in] 收到一条读不懂的：' + err.message); }
+      };
+      es.onerror = () => { /* EventSource 自己重连；这里再写一套就会重连两遍 */ };
+      window.__IN_ES = es;
+    } catch (e) {
+      console.warn('[in] 订阅不上（她只是听不到外面的话，别的照常）：' + e.message);
+    }
+    /* 心跳单独一个文件：页面里不许有自己的定时器（节奏是她的，不是页面的），
+     * 这是唯一的例外，而且它只做一件事——告诉服务端"我还活着"。 */
+    startHeartbeat().start();
+  }
+  /* ---- 行动端口：外面可以不经过她，直接请她动手 ----
+   * 和上面那条分开：进来的是"话"，她可以不理；这里进来的是"请你做一个动作"，
+   * 做完成败原样回去。**判断仍在注册表里**（窗口、归属、失败不冒泡），
+   * 外面拿到的返回值和"她自己动手"完全一样——这层不许替她把失败说成成功。 */
+  function startActPort() {
+    /* 读一次"她现在什么样"。只读，不改：外面据此决定派什么动作。 */
+    function actState() {
+      const st = window.__state || {};
+      const lights = {};
+      for (const it of (window.__INTS || [])) lights[it.label] = !!it.on;
+      const near = window.__near ? window.__near() : null;
+      return {
+        ok: true,
+        pose: st.poseName || null,
+        walking: !!st.walking,
+        x: st.pos ? +st.pos.x.toFixed(2) : null,
+        z: st.pos ? +st.pos.z.toFixed(2) : null,
+        facing: st.facing ? +st.facing.toFixed(2) : 0,
+        near: near ? near.label : null,
+        lights,
+        anim: window.__ANIM ? window.__ANIM() : null,
+      };
+    }
+    let es;
+    try { es = new EventSource('/api/act/stream'); } catch (e) {
+      console.warn('[act] 订阅不上（外面派不动手，她自己还照常）：' + e.message);
+      return;
+    }
+    es.onmessage = async e => {
+      let m;
+      try { m = JSON.parse(e.data); } catch { return; }
+      if (m.type !== 'act') return;
+      let out;
+      try {
+        /* 三个以 __ 开头的是**端口的自省**，不是动作：读状态、列动作、让她开口。
+         * 它们不进注册表，因为注册表里每一条都要过窗口和归属；这三个不改变世界。 */
+        out = m.name === '__state' ? actState()
+          : m.name === '__actions' ? { ok: true, actions: R.toProtocol(), text: R.describeAll() }
+          : m.name === '__speak' ? loop.executor.speak(String((m.args || {}).text || ''))
+          : await R.call(m.name, m.args || {}, { timeoutMs: m.timeoutMs });
+      } catch (err) {
+        out = { ok: false, reason: 'threw', message: String((err && err.message) || err) };
+      }
+      try {
+        await fetch('/api/act/result', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: m.id, result: out }),
+        });
+      } catch { /* 服务端那边有超时，不会一直等；这里再抛就是他没收到 */ }
+    };
+    window.__ACT_ES = es;
+    /* 探针用：不走服务端，直接验一次注册表能不能调。 */
+    window.__ACT = (name, args) => R.call(name, args || {});
+  }
+  startInbox();
+  startActPort();
+  READY.mark('inbox', { sse: !!window.__IN_ES, act: !!window.__ACT_ES });
+  // 开机就说一句"上次是多久以前"——这句话必须是系统给的，不能让她自己猜。
+  // 绝对时间（现在是几点）只给模型，不摆在她嘴边：人不会一睁眼先报时钟。
+  const boot = memory.boot({ cue: '' });
+  const nowB = boot.blocks.find(b => b.id === 'boot.now');
+  if (nowB && nowB.text) {
+    const parts = nowB.text.split('；');
+    const since = parts.find(p => p.startsWith('上次你在这里是'));
+    const pose = parts.find(p => p.startsWith('你现在'));
+    const line0 = [
+      pose ? pose.replace('你现在', '我') : '',
+      since ? since.replace('上次你在这里是', '上次你在这儿是') : '',
+    ].filter(Boolean).join('。');
+    if (line0) loop.executor.speak(line0 + '。');
+  }
+  paint(health.model);
+  /* 声音单独说一句。她要是哑的，得让人知道是"没配引擎"，不是她坏了。 */
+  voice.probe().then(() => console.log('[voice] ' + voice.describe()));
+  /* 到这儿才算装完：十块都在、没有缺口。外面（冒烟测试/桌面壳）认这一句，
+   * 不认"某个全局有没有值"——那正是上一版偶发没反应的原因。 */
+  /* 更新检查放在最后，而且**不 await**：它要联网，最坏情况等 5 秒。
+   * 挂在关键路径上就等于"没联网时她半天不出场"——那是拿核心体验换一个角标。 */
+  /* 注意这两步的返回值不是同一样东西：
+   *   mountUpdates() 给的是**实例**（有 check/badge/markSeen）
+   *   check()        给的是**那一刻的状态**（status/remoteVersion/checkedAt）
+   * 上一版把它们接成一个变量，于是 `u.badge` 是 undefined、
+   * 而 window.__UPDATES 被赋成了状态对象——外面一调 state() 就报错。
+   * 所以这里显式把两样都带着走。 */
+  mountUpdates().then((upd) => {
+    upd.boot();
+    return upd.check().then((st) => ({ upd, st }));
+  }).then(({ upd, st }) => {
+    window.__UPDATES = upd;
+    if (st.status !== 'newer' || !upd.badge()) return;
+    const a = document.getElementById('upd');
+    if (!a) return;
+    a.textContent = '有新版 ' + (st.remoteVersion || '');
+    a.classList.add('on');
+    a.addEventListener('click', () => upd.markSeen());
+  }).catch((e) => {
+    /* 查不了不是错，更不该弹窗：她照常过她的日子。 */
+    console.log('[updates] 没查成（不影响使用）：' + ((e && e.message) || e));
+  });
+
+  console.log('[ready] ' + READY.finish(health.model || '').summary());
+})();
+</script>
+</body></html>

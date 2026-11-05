@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "stretch",
+  "name": "伸个懒腰",
+  "action": "stretch",
+  "description": "站着伸个懒腰",
+  "intent": "伸个懒腰",
+  "pose": "stand",
+  "emotion": "relaxed",
+  "effect": "伸了个懒腰，肩膀松了",
+  "author": "示例",
+  "license": "CC0-1.0"
+}

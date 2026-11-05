@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 2,
+  "canonHeight": 1.357,
+  "note": "一个角色 = 一份人设 + 多套身体。身体按 kind 区分（vrm / live2d）。开源版这里是空的：模型有各自的授权，不能随仓库分发。把 .vrm 拖进页面会自动登记到这里，或者照 assets/README-角色注册表.md 手写一条。",
+  "characters": []
+}

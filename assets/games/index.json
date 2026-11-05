@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "_说明": [
+    "游戏目录：一份游戏一行。enabled 是能不能现在接，不是我们想不想做。",
+    "adapter 指向语义适配器（js/brain/games/*.mjs）；没有 adapter 的游戏只是登记，不假装能玩。",
+    "mode: api = 游戏自己有状态/动作接口；screen = 只能看屏幕，适配器内部用视觉找目标，坐标不进大脑。"
+  ],
+  "games": [
+    {
+      "id": "guess",
+      "name": "猜数字",
+      "mode": "api",
+      "adapter": "js/brain/games/guess.mjs",
+      "enabled": true,
+      "note": "用来证明端口是通的。1~100，每次猜一个整数。",
+      "needs": []
+    },
+    {
+      "id": "sts",
+      "name": "杀戮尖塔",
+      "mode": "screen",
+      "adapter": null,
+      "enabled": false,
+      "note": "只能看屏幕 + 点鼠标。要做的是屏幕适配器：认牌、认费用、认回合结束按钮。",
+      "needs": ["桌面壳", "截屏", "视觉找目标", "点击注入（坐标只在执行层）"]
+    },
+    {
+      "id": "opus",
+      "name": "Opus Magnum",
+      "mode": "screen",
+      "adapter": null,
+      "enabled": false,
+      "note": "解谜类，节奏慢、回合清楚，比动作游戏适合先接。",
+      "needs": ["桌面壳", "截屏", "视觉找目标"]
+    }
+  ]
+}

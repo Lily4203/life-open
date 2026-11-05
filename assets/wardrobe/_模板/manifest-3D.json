@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "_说明": "会建模的人用这一份。二选一：mode=mesh（带网格）或 mode=texture（只换贴图）。",
+
+  "id": "my-mesh-item",
+  "name": "我的3D衣服",
+  "slot": "top",
+  "mode": "mesh",
+
+  "requires": { "skeleton": "fish-vrm", "kind": "vrm" },
+
+  "files": {
+    "mesh": "item.glb",
+    "texture": "item-basecolor.png"
+  },
+  "_files": "mesh 用 .glb（推荐）或 .gltf+.bin；贴图会被 GLB 自己引用，这里的 texture 只是给预览/后备。",
+
+  "anchor": {
+    "bone": "chest",
+    "offset": [0, 0, 0],
+    "rotation": [0, 0, 0],
+    "scale": [1, 1, 1]
+  },
+  "_anchor": "如果你的网格已经按骨架坐标系建好（原点在世界零点、单位米），offset 全填 0、scale 全填 1 就行。若是挂在单根骨头上的一件硬物（耳环、发卡），原点放在挂点上。",
+
+  "skinning": "auto",
+  "_skinning": "auto = 网格自带蒙皮，直接跟着骨架动；rigid = 不蒙皮，整件跟着 anchor.bone 动（适合饰品、鞋、帽子）。",
+
+  "z": 8,
+  "author": "你的名字",
+  "license": "CC-BY-4.0",
+  "source": "hand",
+  "thumbnail": "thumb.png",
+  "note": "面数建议 < 30k；材质名别用中文；不要带动画，动作由身体那侧放。"
+}

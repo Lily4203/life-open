@@ -1,0 +1,141 @@
+{
+  "_doc": [
+    "屋子里发生的、她该注意到的事。加一条 = 加一项，不改代码（服务端跑着时刷新页面即可）。",
+    "when：change 是 pose|near|light|present；label 是那件东西的中文名；from/to 是变化前后；by 是谁做的（her|him|none|unknown）。",
+    "emit：reason 是队列里的原因码（signal|repeat|unseen|no_response|unfinished）；",
+    "      target 是队列里的 id，可以写 {{label}}；detail 是进提示词的那句原话；candidates 是这次只让她考虑的动作。",
+    "规则按文件顺序，第一条命中的算数 —— 具体的写前面，通用的写后面。",
+    "还有一类：when.event（没有 from/to/change），等的是「没有恢复的事」，比如他切了窗口、拖了个文件进来。",
+    "     写法 { \"when\": { \"event\": \"app_focus\" }, \"emit\": { ... } }，由页面/桌面壳调 perception.signal() 投递。",
+    "     现在网页里没有这种事件源，所以下面一条都没写 —— 门开着，规则等真有事件了再加。",
+    "游戏事件：when.event 是 game_start / game_turn / game_over，由 game-bridge 投递；{{text}} 是游戏自己带的那句话。"
+  ],
+  "rules": [
+    {
+      "id": "he_left",
+      "when": {
+        "change": "present",
+        "to": false
+      },
+      "emit": {
+        "reason": "signal",
+        "target": "present:him",
+        "detail": "他出去了，屋里现在只剩你。",
+        "candidates": []
+      }
+    },
+    {
+      "id": "he_back",
+      "when": {
+        "change": "present",
+        "to": true
+      },
+      "emit": {
+        "reason": "signal",
+        "target": "present:him",
+        "detail": "他回来了。",
+        "candidates": []
+      }
+    },
+    {
+      "id": "curtain_closed",
+      "when": {
+        "change": "light",
+        "label": "窗帘",
+        "to": false,
+        "by": "him"
+      },
+      "emit": {
+        "reason": "signal",
+        "target": "light:{{label}}",
+        "detail": "窗帘刚被拉上了，屋里暗了一截。",
+        "candidates": [
+          "look_at",
+          "go_to"
+        ]
+      }
+    },
+    {
+      "id": "light_off",
+      "when": {
+        "change": "light",
+        "to": false,
+        "by": "him"
+      },
+      "emit": {
+        "reason": "signal",
+        "target": "light:{{label}}",
+        "detail": "{{label}}刚被关掉了。",
+        "candidates": [
+          "look_at",
+          "go_to",
+          "toggle"
+        ]
+      }
+    },
+    {
+      "id": "light_on",
+      "when": {
+        "change": "light",
+        "to": true,
+        "by": "him"
+      },
+      "emit": {
+        "reason": "signal",
+        "target": "light:{{label}}",
+        "detail": "{{label}}刚被打开了。",
+        "candidates": [
+          "look_at"
+        ]
+      }
+    },
+    {
+      "id": "game_turn",
+      "when": {
+        "event": "game_turn"
+      },
+      "emit": {
+        "reason": "signal",
+        "target": "game:turn",
+        "detail": "{{text}}",
+        "candidates": []
+      }
+    },
+    {
+      "id": "game_over",
+      "when": {
+        "event": "game_over"
+      },
+      "emit": {
+        "reason": "signal",
+        "target": "game:over",
+        "detail": "{{text}}",
+        "candidates": []
+      }
+    },
+    {
+      "id": "he_typing",
+      "when": {
+        "event": "typing"
+      },
+      "emit": {
+        "reason": "signal",
+        "target": "typing:him",
+        "detail": "{{text}}",
+        "candidates": []
+      }
+    },
+    {
+      "id": "saw_screen",
+      "when": {
+        "event": "screen"
+      },
+      "emit": {
+        "reason": "signal",
+        "target": "screen:him",
+        "detail": "{{text}}",
+        "candidates": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1536" viewBox="0 0 1024 1536">
+  <title>穿戴分层画布模板 · 1024×1536</title>
+  <desc>按这个画布画一张图，再把图挂到对应骨头上。虚线是身体位置参考，画的时候不要画身体，只画衣服/头发/饰品。</desc>
+
+  <rect width="1024" height="1536" fill="#fbfaf7"/>
+  <g stroke="#e6e1d8" stroke-width="1">
+    <path d="M0 256H1024M0 512H1024M0 768H1024M0 1024H1024M0 1280H1024" />
+    <path d="M256 0V1536M512 0V1536M768 0V1536" />
+  </g>
+
+  <!-- 身体参考轮廓（只做位置参考，不要画进成品） -->
+  <g fill="none" stroke="#c9c2b4" stroke-width="3" stroke-dasharray="10 10">
+    <!-- 头 -->
+    <ellipse cx="512" cy="250" rx="118" ry="146"/>
+    <!-- 脖子 -->
+    <path d="M462 380v76M562 380v76"/>
+    <!-- 肩与躯干 -->
+    <path d="M462 456c-96 22-158 78-178 160l-30 236c-8 72 10 132 34 176h448c24-44 42-104 34-176l-30-236c-20-82-82-138-178-160"/>
+    <!-- 手臂 -->
+    <path d="M292 616c-34 96-46 210-40 318 4 80 16 146 34 196M732 616c34 96 46 210 40 318-4 80-16 146-34 196"/>
+    <!-- 腿 -->
+    <path d="M420 1040v330M604 1040v330"/>
+  </g>
+
+  <!-- 槽位提示 -->
+  <g font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="28" fill="#8a8272">
+    <g>
+      <rect x="44" y="86" width="180" height="58" rx="12" fill="#efe7d8"/>
+      <text x="66" y="124">hair 发型</text>
+      <text x="44" y="170" font-size="20">骨名 head · 默认 0.26×0.24 m</text>
+    </g>
+    <g>
+      <rect x="44" y="470" width="180" height="58" rx="12" fill="#e8eee4"/>
+      <text x="66" y="508">top 上衣</text>
+      <text x="44" y="554" font-size="20">骨名 chest · 默认 0.40×0.34 m</text>
+    </g>
+    <g>
+      <rect x="44" y="700" width="180" height="58" rx="12" fill="#e6e9f0"/>
+      <text x="66" y="738">accessory 饰品</text>
+      <text x="44" y="784" font-size="20">骨名 chest/neck · 最多 4 件</text>
+    </g>
+    <g>
+      <rect x="800" y="900" width="180" height="58" rx="12" fill="#f0e8e2"/>
+      <text x="822" y="938">bottom 下装</text>
+      <text x="800" y="984" font-size="20">骨名 hips · 默认 0.34×0.30 m</text>
+    </g>
+    <g>
+      <rect x="800" y="1290" width="180" height="58" rx="12" fill="#eeeae2"/>
+      <text x="822" y="1328">shoes 鞋</text>
+      <text x="800" y="1374" font-size="20">骨名 hips/foot · 0.30×0.14 m</text>
+    </g>
+  </g>
+
+  <g font-family="'PingFang SC','Microsoft YaHei',sans-serif" fill="#6f6759">
+    <text x="512" y="70" text-anchor="middle" font-size="34" letter-spacing="4">穿戴分层画布 · 1024 × 1536</text>
+    <text x="512" y="112" text-anchor="middle" font-size="20" fill="#9a927f">只画衣服/头发/饰品，不要画身体；背景留透明或纯色</text>
+    <text x="512" y="1500" text-anchor="middle" font-size="18" fill="#9a927f">导出 PNG（透明底）· 长边 ≥1024 · 不要阴影 · 不要让边缘贴边</text>
+  </g>
+
+  <!-- 中线与安全边距 -->
+  <line x1="512" y1="0" x2="512" y2="1536" stroke="#e0b9a8" stroke-width="1" stroke-dasharray="4 8"/>
+  <rect x="32" y="32" width="960" height="1472" fill="none" stroke="#d8d2c4" stroke-width="2" rx="8"/>
+</svg>

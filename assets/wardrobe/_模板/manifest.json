@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "_说明": "这是一件「有图就能生成」的模板。复制这个文件夹到 assets/wardrobe/items/<你的id>/，把 layer.png 换成你的图，改下面 6 个地方就能穿。",
+
+  "id": "my-item",
+  "_id": "只能用小写字母、数字、下划线、短横线；它会进动作参数，所以别用中文。",
+
+  "name": "我的第一件",
+  "_name": "提示词里用的是这个名字。写人话，比如「红围巾」「米色开衫」。",
+
+  "slot": "accessory",
+  "_slot": "六选一：body（身体）/ hair（发型）/ top（上衣）/ bottom（下装）/ shoes（鞋）/ accessory（饰品）。除饰品外，同一个槽同时只穿一件。",
+
+  "mode": "overlay",
+  "_mode": "overlay = 一张图挂在骨头上（有图就能做）；mesh = 3D 网格；texture = 换某块材质的贴图。",
+
+  "requires": { "skeleton": "fish-vrm", "kind": "vrm" },
+  "_requires": "可选。写了就只给这副骨架用；骨架对不上会拒绝穿上，不会硬套。",
+
+  "files": { "image": "layer.png" },
+  "_files": "overlay 只要一张图；mesh 用 files.mesh；texture 用 files.texture。路径相对于这件自己的文件夹。",
+
+  "anchor": {
+    "bone": "chest",
+    "offset": [0, 0.1, 0.06],
+    "rotation": [0, 0, 0],
+    "scale": [0.3, 0.2, 1]
+  },
+  "_anchor": "挂点。bone 是骨名（chest 胸口 / neck 脖子 / head 头 / hips 胯 / leftHand 左手…）；offset 是相对骨头的偏移，单位米；scale 是这张图在身上的实际宽高，单位米。拖滑块比算数字快。",
+
+  "z": 10,
+  "_z": "同一位置的先后顺序，数字大的在外面。发型一般 20，上衣 8~10，饰品 12。",
+
+  "author": "你的名字",
+  "license": "CC0-1.0",
+  "_license": "必填。别人拿到这份内容时要知道能不能用。常用：CC0-1.0 / CC-BY-4.0 / 仅自己使用。",
+
+  "source": "image",
+  "_source": "image = 从一张图生成；hand = 手工建模/画的分层；import = 从别处导入。",
+
+  "thumbnail": "layer.png",
+  "note": "一句话说明这件是什么。"
+}

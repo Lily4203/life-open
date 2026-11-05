@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "tea",
+  "name": "喝口茶",
+  "action": "drink_tea",
+  "description": "走到桌前坐下，喝一口茶",
+  "intent": "喝口茶",
+  "at": "desk:1",
+  "move": "use_furniture",
+  "pose": "desk",
+  "emotion": "relaxed",
+  "effect": "喝了口茶，是温的",
+  "author": "示例",
+  "license": "CC0-1.0"
+}

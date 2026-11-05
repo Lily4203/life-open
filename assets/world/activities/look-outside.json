@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "look-outside",
+  "name": "看窗外",
+  "action": "look_outside",
+  "description": "走到窗边，看一眼外面",
+  "intent": "看看窗外",
+  "at": "curtain:1",
+  "move": "go_to",
+  "pose": "stand",
+  "emotion": "relaxed",
+  "effect": "在窗边站了一会儿，外面很静",
+  "author": "示例",
+  "license": "CC0-1.0"
+}

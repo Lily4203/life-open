@@ -1,0 +1,31 @@
+{
+  "_读我": "复制成 config.json 再填。config.json 不进仓库（里面是你的群号和账号），这个 example 进仓库。填了什么，更新页就显示什么；留空的整块不显示。以 _ 开头的键都不读，只是给人看的说明。",
+
+  "community": {
+    "bilibili": {
+      "name": "",
+      "url": ""
+    },
+    "qq": {
+      "group": "",
+      "url": "",
+      "note": "有问题、想说点什么，来这里"
+    },
+    "github": ""
+  },
+
+  "support": {
+    "note": "她不要钱也能活着。这些是给「想让她活得好一点」的人准备的，不是门槛。",
+    "links": []
+  },
+
+  "_字段": {
+    "community.bilibili.name": "显示名，例如「小鱼_观察日记」。留空则整块不显示。",
+    "community.bilibili.url": "空间地址，例如 https://space.bilibili.com/1234567",
+    "community.qq.group": "群号，纯数字。",
+    "community.qq.url": "加群链接（可选）。留空时按钮变成「复制群号」。",
+    "community.github": "仓库地址。开源第一天这里比打赏重要——别人是来看代码的。",
+    "support.links": "数组，一条一个渠道：{ label, url, note }。常用：爱发电 / B站充电 / 收款码图片。每个渠道的真实门槛见 docs/支持与社群.md。",
+    "support.note": "这一段显示在支持区最上面。"
+  }
+}

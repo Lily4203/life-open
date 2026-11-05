@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "_说明": [
+    "别人往屋子里加东西，从这里开始：一个活动一份 JSON，加一行 file 就多一件。",
+    "活动只能组合屋子里已有的东西（走到某件家具、坐下、换表情）；坐标、话、时机都不归它管。",
+    "格式见 assets/world/README.md。"
+  ],
+  "activities": [
+    "tea.json",
+    "look-outside.json",
+    "stretch.json"
+  ]
+}

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>更新 · 她住在这里</title>
+<style>
+  :root{
+    --ink:#3b2c1f; --dim:#6f5c48; --faint:#95816a;
+    --warm:#c4762f; --warm2:#a85f22;
+    --paper:#f2e9da; --card:#fbf5e9; --line:#e0cfb4;
+    --ok:#4f7a4a; --bad:#b5482f; --wait:#b5822f; --cool:#4a6b82;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);
+    font:15px/1.8 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  /* 纸的质感靠两层：一层极淡的斜向明暗，一层很疏的横纹。
+     不用图片，所以它在任何分辨率下都不会糊。 */
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      linear-gradient(166deg,rgba(255,252,244,.85) 0%,rgba(242,233,218,0) 46%,rgba(222,205,178,.5) 100%),
+      repeating-linear-gradient(2deg,rgba(140,110,74,.035) 0 1px,transparent 1px 5px)}
+  .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:44px 22px 90px}
+
+  h1{font:600 30px/1.35 Georgia,"Songti SC","SimSun",serif;margin:0 0 6px;letter-spacing:.01em}
+  .sub{color:var(--dim);margin:0 0 34px;font-size:14px}
+  h2{font:600 17px/1.5 Georgia,"Songti SC",serif;margin:38px 0 14px;
+     padding-bottom:9px;border-bottom:1px solid var(--line)}
+
+  /* ── 版本卡 ─────────────────────────────────────── */
+  .ver{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .ver>div{background:var(--card);padding:18px 20px}
+  .ver .k{font-size:12px;color:var(--faint);letter-spacing:.08em;margin-bottom:4px}
+  .ver .v{font:600 22px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace}
+  .ver .n{font-size:12px;color:var(--dim);margin-top:5px}
+  #state{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  #dot{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:none;
+    box-shadow:0 0 0 3px rgba(149,129,106,.16)}
+  #state .txt{flex:1;min-width:180px;font-size:14px}
+  #state.unknown #dot{background:var(--wait);box-shadow:0 0 0 3px rgba(181,130,47,.16)}
+  #state.current #dot{background:var(--ok);box-shadow:0 0 0 3px rgba(79,122,74,.16)}
+  #state.newer   #dot{background:var(--bad);box-shadow:0 0 0 3px rgba(181,72,47,.18)}
+  #state.ahead   #dot{background:var(--cool);box-shadow:0 0 0 3px rgba(74,107,130,.16)}
+  #state.newer .txt{font-weight:600;color:var(--bad)}
+
+  button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);padding:7px 16px;transition:.15s}
+  button:hover{border-color:var(--warm);color:var(--warm2)}
+  button:disabled{opacity:.5;cursor:default}
+  button.primary{background:var(--warm);border-color:var(--warm);color:#fff}
+  button.primary:hover{background:var(--warm2);border-color:var(--warm2);color:#fff}
+
+  /* ── 更新日志 ───────────────────────────────────── */
+  .rel{position:relative;padding:0 0 26px 26px;border-left:1px solid var(--line)}
+  .rel:last-child{border-left-color:transparent;padding-bottom:6px}
+  .rel::before{content:'';position:absolute;left:-5px;top:9px;width:9px;height:9px;border-radius:50%;
+    background:var(--card);border:2px solid var(--faint)}
+  .rel.head::before{border-color:var(--warm);background:var(--warm)}
+  .rel h3{margin:0 0 3px;font:600 17px/1.5 Georgia,"Songti SC",serif}
+  .rel .meta{font:12px/1.6 ui-monospace,monospace;color:var(--faint);margin-bottom:10px}
+  .rel .meta b{color:var(--warm2);font-weight:600}
+  .rel ul{margin:0;padding-left:19px}
+  .rel li{margin:0 0 7px;color:#4a3a2b}
+  .rel li::marker{color:var(--faint)}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:4px;margin-left:8px;
+    vertical-align:2px;background:rgba(196,118,47,.12);color:var(--warm2)}
+  .tag.fix{background:rgba(79,122,74,.13);color:#456b41}
+  .tag.content{background:rgba(74,107,130,.13);color:#42627a}
+  .tag.security{background:rgba(181,72,47,.12);color:#a2402a}
+  code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:rgba(140,110,74,.10);padding:1.5px 5px;border-radius:4px}
+  pre{background:#2f2519;color:#efe2cc;padding:15px 17px;border-radius:10px;overflow:auto;
+    font:13px/1.75 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+  pre code{background:none;padding:0;color:inherit}
+  pre .c{color:#9d8a6e}
+
+  /* 警告：不是装饰。这三条每条都对应一次真的数据丢失。 */
+  .warn{border-left:3px solid var(--bad);background:rgba(181,72,47,.06);
+    padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+  .warn b{color:var(--bad)}
+  .warn p{margin:5px 0}
+  .note{color:var(--dim);font-size:13.5px}
+
+  /* ── 支持 ───────────────────────────────────────── */
+  .sup{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+  .sup a,.sup .row{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;
+    border:1px solid var(--line);background:var(--card);border-radius:10px;padding:13px 16px;
+    transition:.15s}
+  .sup a:hover{border-color:var(--warm);transform:translateX(2px)}
+  .sup .lab{font-weight:600}
+  .sup .why{font-size:12.5px;color:var(--faint)}
+  .sup .go{margin-left:auto;color:var(--warm);font-size:13px;white-space:nowrap}
+
+  footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);
+    display:flex;gap:14px;flex-wrap:wrap;align-items:center;color:var(--faint);font-size:13px}
+  footer a{color:var(--dim)}
+  @media(max-width:520px){
+    .wrap{padding:28px 16px 70px}
+    h1{font-size:24px}
+    .ver{grid-template-columns:1fr}
+    .ver .v{font-size:19px}
+  }
+</style></head><body>
+<div class="wrap">
+  <h1>她有新东西了</h1>
+  <p class="sub">这一页只做三件事：告诉你我这份是哪一版、外面有没有新的、怎么换上去。<br>
+     它不会自己动手——你的 <code>data/</code> 在这儿，覆盖一次就没了。</p>
+
+  <div class="ver">
+    <div><div class="k">你这份</div><div class="v" id="lv">—</div><div class="n" id="lr">&nbsp;</div></div>
+    <div><div class="k">外面</div><div class="v" id="rv">—</div><div class="n" id="rr">&nbsp;</div></div>
+    <div id="state" class="unknown">
+      <span id="dot"></span>
+      <span class="txt" id="stxt">正在查…</span>
+      <button id="recheck">再查一次</button>
+    </div>
+  </div>
+
+  <h2>更新日志</h2>
+  <div id="notes"></div>
+
+  <h2>怎么换上去</h2>
+  <p class="note">推荐：把新版本拉到另一个目录，只把代码搬过来，不碰数据和配置。</p>
+<pre><code><span class="c"># 1. 拉到旁边一个新目录（不要在你正在用的目录里 pull）</span>
+git clone &lt;仓库地址&gt; ../新版本
+
+<span class="c"># 2. 把新代码盖到旧目录上，但排除这几样</span>
+rsync -a --exclude data/ --exclude keys.json --exclude config.json \
+      --exclude assets/vrm/ --exclude vendor/live2d/ \
+      ../新版本/ ./
+
+<span class="c"># 3. 起服务，看首行有没有报缺块</span>
+node tools/serve.mjs</code></pre>
+
+  <div class="warn">
+    <p><b>别覆盖 <code>data/</code></b>。里面是她的记忆和议程，是这整件事里唯一不可再生的东西。</p>
+    <p><b>别覆盖 <code>keys.json</code> / <code>config.json</code></b>。一个是密钥，一个是你填的社群和打赏地址。</p>
+    <p><b>模型和 Live2D 要自己放回去</b>。它们不进仓库（授权和体积两个原因），更新完如果她不出来，
+       先看 <code>assets/vrm/</code> 里还有没有你的模型。</p>
+  </div>
+
+  <h2>支持她继续活着</h2>
+  <p class="note" id="supnote">这一块读的是 <code>config.json</code>。填了什么就显示什么，没填就不显示。</p>
+  <div class="sup" id="sup"></div>
+
+  <footer>
+    <a href="预览-67.html">← 回到门口</a>
+    <a href="预览-66.html">进房间</a>
+    <span id="foot"></span>
+  </footer>
+</div>
+
+<script type="module">
+import { mountUpdates, KIND_LABEL } from './js/brain/updates.mjs';
+
+const $ = (id) => document.getElementById(id);
+
+/* ── 一、文字一律先转义再上屏 ────────────────────────────
+   version.json 从外面拉，是**不可信输入**。这里做的是"先全部当纯文本"，
+   再只放开两种行内标记（**粗** 和 `代码`）——不是把 HTML 放行。
+   为什么值得写这段：更新日志将来可能是别人提交的 PR 改的，
+   而这一页跑在他的浏览器里。一个 <img onerror> 就够了。 */
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+function inline(text) {
+  return esc(text)
+    .replace(/\*\*([^*]{1,80})\*\*/g, '<b>$1</b>')
+    .replace(/`([^`]{1,80})`/g, '<code>$1</code>');
+}
+
+/* 状态 → 一句话 + 该不该让人慌。
+   unknown 一定不许说成"最新"：查不了和已经最新是两件事，
+   混在一起的后果是别人一直以为自己在用最新版。 */
+const COPY = {
+  unknown: (s) => s.reason || '查不了外面有没有新的',
+  current: () => '已经是最新的',
+  newer: (s) => `外面有 ${s.remoteVersion}，可以换上去`,
+  ahead: (s) => s.reason || '你这份比发布版新',
+};
+
+function paint(s) {
+  $('lv').textContent = s.localVersion || '—';
+  $('rv').textContent = s.remoteVersion || (s.status === 'unknown' ? '查不到' : '—');
+  const box = $('state');
+  box.className = s.status;
+  $('stxt').textContent = (COPY[s.status] || COPY.unknown)(s);
+
+  const local = updates.local();
+  $('lr').textContent = local.released ? `发布于 ${local.released}` : '\u00a0';
+  $('rr').textContent = s.checkedAt
+    ? `查于 ${new Date(s.checkedAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`
+    : '\u00a0';
+  $('foot').textContent = local.channel ? `通道：${local.channel}` : '';
+}
+
+function paintNotes(list) {
+  const box = $('notes');
+  if (!list.length) {
+    box.innerHTML = '<p class="note">这份文件里没有更新日志。</p>';
+    return;
+  }
+  box.innerHTML = list.map((n, i) => `
+    <div class="rel${i === 0 ? ' head' : ''}">
+      <h3>${esc(n.title || '（没写标题）')}</h3>
+      <div class="meta"><b>${esc(n.v || '?')}</b>${n.date ? ' · ' + esc(n.date) : ''}
+        ${n.kind !== 'release' ? `<span class="tag ${esc(n.kind)}">${esc(KIND_LABEL[n.kind] || n.kind)}</span>` : ''}</div>
+      ${n.items.length ? `<ul>${n.items.map((it) => `<li>${inline(it)}</li>`).join('')}</ul>` : ''}
+    </div>`).join('');
+}
+
+/* ── 二、支持与社群：填了才显示 ──────────────────────────
+   为什么不在代码里写死渠道：这是**他的**事，不是框架的事。
+   框架只负责"如果有，就好好显示出来"。 */
+/* 只认 config.json。**不许**拿 config.example.json 顶上——
+   那是给人抄格式用的模板，里面的 note 文案是真的、群号是空的。
+   顶上来的结果是页面上出现一个"QQ 群（复制群号）"但根本没有群号，
+   看起来像配好了，实际点了什么也不会发生。宁可显示"还没填"。 */
+async function loadConfig() {
+  try {
+    const r = await fetch('./config.json', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const cfg = await r.json();
+    return cfg && typeof cfg === 'object' ? cfg : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function paintSupport(cfg) {
+  const box = $('sup');
+  const links = [];
+
+  const c = (cfg && cfg.community) || {};
+  if (c.bilibili && (c.bilibili.name || c.bilibili.url)) {
+    links.push({ label: c.bilibili.name || 'B 站', why: '她在那儿，也在这儿',
+      href: c.bilibili.url || '#', go: '去看看' });
+  }
+  /* 判据是"有没有能加的东西"（群号或链接），不是"有没有说明文字"——
+     note 有值而群号是空的时候，显示出来就是一个点不动的按钮。 */
+  if (c.qq && (c.qq.group || c.qq.url)) {
+    links.push({ label: c.qq.group ? `QQ 群 ${c.qq.group}` : 'QQ 群',
+      why: c.qq.note || '有问题、想说点什么，来这里', href: c.qq.url || '#',
+      go: c.qq.url ? '加群' : '复制群号' });
+  }
+  if (c.github) links.push({ label: '代码仓库', why: '改动、问题、想法都在这儿说', href: c.github, go: '打开' });
+
+  const s = (cfg && cfg.support) || {};
+  for (const l of (Array.isArray(s.links) ? s.links : [])) {
+    if (!l || !l.label) continue;
+    links.push({ label: l.label, why: l.note || '', href: l.url || '#', go: l.url ? '打开' : '' });
+  }
+
+  if (!links.length) {
+    box.innerHTML = '<div class="row"><span class="why">还没填。<code>config.example.json</code> 复制成 '
+      + '<code>config.json</code>，把你的 B 站、群号、打赏地址填进去，这里就会显示。</span></div>';
+    return;
+  }
+  if (s.note) $('supnote').textContent = s.note;
+  box.innerHTML = links.map((l) => `
+    <a href="${esc(l.href)}" ${/^https?:/.test(l.href) ? 'target="_blank" rel="noopener"' : ''}>
+      <span><span class="lab">${esc(l.label)}</span><br><span class="why">${esc(l.why)}</span></span>
+      <span class="go">${esc(l.go || '')}</span>
+    </a>`).join('');
+}
+
+/* ── 三、跑起来 ──────────────────────────────────────── */
+const updates = await mountUpdates();
+
+const s0 = updates.boot();
+paint(s0);
+paintNotes(updates.local().notes);
+
+/* 自动查一次（有缓存就直接用缓存，不会每次都打网络）。
+   查完如果远端带了更新日志，就换成远端那份——**新版本的新内容要在这儿直接说出来**，
+   而不是让人自己去翻仓库。 */
+updates.check().then((s) => {
+  paint(s);
+  /* 远端带了日志就换成远端那份：**新版本的新内容要在这儿直接说出来**，
+     而不是让人自己去翻仓库。
+     但这里**不标记"已看过"**——一打开这一页就算知道，房里那个徽标会跟着一起熄，
+     而"点开过徽标"才是真的知道。标记只发生在房间页点徽标那一处。 */
+  if (s.status === 'newer' && s.remote && Array.isArray(s.remote.notes)) {
+    paintNotes(updates.notes());
+  }
+});
+
+$('recheck').addEventListener('click', async () => {
+  $('recheck').disabled = true;
+  $('stxt').textContent = '正在查…';
+  const s = await updates.check({ force: true });
+  paint(s);
+  if (s.status === 'newer') paintNotes(updates.notes());
+  $('recheck').disabled = false;
+});
+
+paintSupport(await loadConfig());
+
+/* 给别人查的时候用：控制台里 window.__UPDATES.state() 一眼看到结论。 */
+window.__UPDATES = updates;
+</script>
+</body></html>
